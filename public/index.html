@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlowLink</title>
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%2307c160"/><text x="32" y="42" font-size="34" text-anchor="middle" fill="white" font-family="Arial" font-weight="700">F</text></svg>' />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section class="auth-shell" id="authView">
+        <div class="auth-panel">
+          <div class="brand-mark">F</div>
+          <h1>FlowLink</h1>
+          <form id="loginForm" class="auth-form">
+            <label>
+              <span>账号</span>
+              <input id="loginAccount" value="wanghui" autocomplete="username" />
+            </label>
+            <label>
+              <span>密码</span>
+              <input id="loginPassword" type="password" value="flowlink123" autocomplete="current-password" />
+            </label>
+            <button class="primary-action" type="submit">登录</button>
+          </form>
+          <form id="registerForm" class="auth-form hidden">
+            <label>
+              <span>昵称</span>
+              <input id="registerName" maxlength="20" />
+            </label>
+            <label>
+              <span>用户名</span>
+              <input id="registerUsername" maxlength="20" autocomplete="username" />
+            </label>
+            <label>
+              <span>邮箱</span>
+              <input id="registerEmail" type="email" autocomplete="email" />
+            </label>
+            <label>
+              <span>密码</span>
+              <input id="registerPassword" type="password" autocomplete="new-password" />
+            </label>
+            <button class="primary-action" type="submit">注册</button>
+          </form>
+          <div class="auth-switch">
+            <button id="showLogin" class="active" type="button">登录</button>
+            <button id="showRegister" type="button">注册</button>
+          </div>
+          <p id="authMessage" class="auth-message"></p>
+        </div>
+      </section>
+
+      <section class="workspace hidden" id="workspaceView">
+        <aside class="rail">
+          <div id="meAvatar" class="avatar avatar-large">F</div>
+          <button class="rail-btn active" data-tab="chats" title="聊天">💬</button>
+          <button class="rail-btn" data-tab="contacts" title="联系人">👥</button>
+          <button class="rail-btn" data-tab="requests" title="申请">🔔</button>
+          <button class="rail-btn" data-tab="settings" title="资料">⚙</button>
+          <button class="rail-btn logout" id="logoutBtn" title="退出">↩</button>
+        </aside>
+
+        <aside class="sidebar">
+          <header class="sidebar-header">
+            <div>
+              <strong id="sidebarTitle">聊天</strong>
+              <span id="connectionText">连接中</span>
+            </div>
+            <button id="newGroupBtn" class="icon-btn" title="创建群聊">＋</button>
+          </header>
+          <div class="search-box">
+            <span>⌕</span>
+            <input id="searchInput" placeholder="搜索" />
+          </div>
+          <div id="listView" class="list-view"></div>
+        </aside>
+
+        <section class="chat-pane">
+          <header class="chat-header">
+            <button class="mobile-back icon-btn" id="mobileBackBtn" title="返回">‹</button>
+            <div id="chatAvatar" class="avatar">F</div>
+            <div class="chat-title-block">
+              <h2 id="chatTitle">FlowLink</h2>
+              <span id="chatSubTitle">选择一个会话开始</span>
+            </div>
+            <button id="detailsBtn" class="icon-btn" title="会话信息">⋯</button>
+          </header>
+
+          <div id="messageList" class="message-list empty-state">
+            <div class="empty-logo">FlowLink</div>
+          </div>
+
+          <div id="typingLine" class="typing-line"></div>
+
+          <footer class="composer">
+            <div class="composer-tools">
+              <button id="emojiBtn" class="icon-btn" title="表情">☺</button>
+              <button id="imageBtn" class="icon-btn" title="图片">▧</button>
+              <input id="imageInput" type="file" accept="image/*" hidden />
+              <div id="emojiPanel" class="emoji-panel hidden"></div>
+            </div>
+            <textarea id="messageInput" rows="1" maxlength="2000"></textarea>
+            <button id="sendBtn" class="send-btn" type="button">发送</button>
+          </footer>
+        </section>
+
+        <aside class="details-pane" id="detailsPane">
+          <header>
+            <strong>详情</strong>
+            <button id="closeDetailsBtn" class="icon-btn" title="关闭">×</button>
+          </header>
+          <div id="detailsContent"></div>
+        </aside>
+      </section>
+
+      <div id="toast" class="toast"></div>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
