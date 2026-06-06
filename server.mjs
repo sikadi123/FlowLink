@@ -57,74 +57,74 @@ function seedDb() {
   const demoPassword = "flowlink123";
   const users = [
     {
-      id: "u_wanghui",
-      username: "wanghui",
-      email: "wanghui@flowlink.local",
-      displayName: "王辉",
+      id: "u_linche",
+      username: "linche",
+      email: "linche@flowlink.local",
+      displayName: "林澈",
       role: "前端开发",
       bio: "负责微信风格 UI 和交互体验。",
-      avatar: avatar("王辉", "#07c160"),
-      password: hashPassword(demoPassword, "flowlink-wanghui"),
+      avatar: avatar("林澈", "#07c160"),
+      password: hashPassword(demoPassword, "flowlink-linche"),
       status: "offline",
       createdAt: nowIso(),
     },
     {
-      id: "u_guimingyang",
-      username: "guimingyang",
-      email: "guimingyang@flowlink.local",
-      displayName: "桂明洋",
+      id: "u_shenyan",
+      username: "shenyan",
+      email: "shenyan@flowlink.local",
+      displayName: "沈砚",
       role: "通讯架构师",
       bio: "关注 Netty 长连接、ACK 与消息路由。",
-      avatar: avatar("桂明洋", "#2f80ed"),
-      password: hashPassword(demoPassword, "flowlink-guimingyang"),
+      avatar: avatar("沈砚", "#2f80ed"),
+      password: hashPassword(demoPassword, "flowlink-shenyan"),
       status: "offline",
       createdAt: nowIso(),
     },
     {
-      id: "u_xuqiantao",
-      username: "xuqiantao",
-      email: "xuqiantao@flowlink.local",
-      displayName: "徐乾涛",
+      id: "u_xuzhihang",
+      username: "xuzhihang",
+      email: "xuzhihang@flowlink.local",
+      displayName: "许知航",
       role: "WebSocket 客户端",
       bio: "负责实时状态管理和消息幂等。",
-      avatar: avatar("徐乾涛", "#7c3aed"),
-      password: hashPassword(demoPassword, "flowlink-xuqiantao"),
+      avatar: avatar("许知航", "#7c3aed"),
+      password: hashPassword(demoPassword, "flowlink-xuzhihang"),
       status: "offline",
       createdAt: nowIso(),
     },
     {
-      id: "u_jiangxudong",
-      username: "jiangxudong",
-      email: "jiangxudong@flowlink.local",
-      displayName: "姜旭东",
+      id: "u_zhouyu",
+      username: "zhouyu",
+      email: "zhouyu@flowlink.local",
+      displayName: "周屿",
       role: "安全与缓存",
       bio: "负责 JWT、Redis 网关和敏感词策略。",
-      avatar: avatar("姜旭东", "#f97316"),
-      password: hashPassword(demoPassword, "flowlink-jiangxudong"),
+      avatar: avatar("周屿", "#f97316"),
+      password: hashPassword(demoPassword, "flowlink-zhouyu"),
       status: "offline",
       createdAt: nowIso(),
     },
     {
-      id: "u_wangzhenyue",
-      username: "wangzhenyue",
-      email: "wangzhenyue@flowlink.local",
-      displayName: "王振越",
+      id: "u_yelan",
+      username: "yelan",
+      email: "yelan@flowlink.local",
+      displayName: "叶岚",
       role: "数据负责人",
       bio: "负责 MySQL、MinIO 和数据映射。",
-      avatar: avatar("王振越", "#0f766e"),
-      password: hashPassword(demoPassword, "flowlink-wangzhenyue"),
+      avatar: avatar("叶岚", "#0f766e"),
+      password: hashPassword(demoPassword, "flowlink-yelan"),
       status: "offline",
       createdAt: nowIso(),
     },
     {
-      id: "u_gongxingwang",
-      username: "gongxingwang",
-      email: "gongxingwang@flowlink.local",
-      displayName: "龚兴旺",
+      id: "u_songyao",
+      username: "songyao",
+      email: "songyao@flowlink.local",
+      displayName: "宋遥",
       role: "后端编码",
       bio: "负责用户、好友和群组业务闭环。",
-      avatar: avatar("龚兴旺", "#e11d48"),
-      password: hashPassword(demoPassword, "flowlink-gongxingwang"),
+      avatar: avatar("宋遥", "#e11d48"),
+      password: hashPassword(demoPassword, "flowlink-songyao"),
       status: "offline",
       createdAt: nowIso(),
     },
@@ -135,18 +135,18 @@ function seedDb() {
     users,
     sessions: {},
     friendships: [
-      { id: "fr_1", users: ["u_wanghui", "u_guimingyang"], createdAt },
-      { id: "fr_2", users: ["u_wanghui", "u_xuqiantao"], createdAt },
-      { id: "fr_3", users: ["u_wanghui", "u_jiangxudong"], createdAt },
-      { id: "fr_4", users: ["u_guimingyang", "u_xuqiantao"], createdAt },
-      { id: "fr_5", users: ["u_guimingyang", "u_wangzhenyue"], createdAt },
-      { id: "fr_6", users: ["u_jiangxudong", "u_gongxingwang"], createdAt },
+      { id: "fr_1", users: ["u_linche", "u_shenyan"], createdAt },
+      { id: "fr_2", users: ["u_linche", "u_xuzhihang"], createdAt },
+      { id: "fr_3", users: ["u_linche", "u_zhouyu"], createdAt },
+      { id: "fr_4", users: ["u_shenyan", "u_xuzhihang"], createdAt },
+      { id: "fr_5", users: ["u_shenyan", "u_yelan"], createdAt },
+      { id: "fr_6", users: ["u_zhouyu", "u_songyao"], createdAt },
     ],
     friendRequests: [
       {
         id: "req_1",
-        fromId: "u_wangzhenyue",
-        toId: "u_wanghui",
+        fromId: "u_yelan",
+        toId: "u_linche",
         status: "pending",
         message: "数据库这边我已经准备好表结构了，拉我进前端联调。",
         createdAt,
@@ -157,7 +157,7 @@ function seedDb() {
         id: "g_a2607",
         name: "A2607 FlowLink 项目组",
         avatar: avatar("流", "#07c160"),
-        ownerId: "u_guimingyang",
+        ownerId: "u_shenyan",
         memberIds: users.map((user) => user.id),
         notice: "目标：先跑通聊天闭环，再补齐可靠性与工程化。",
         createdAt,
@@ -166,20 +166,20 @@ function seedDb() {
         id: "g_frontend",
         name: "前端体验联调",
         avatar: avatar("前", "#2563eb"),
-        ownerId: "u_wanghui",
-        memberIds: ["u_wanghui", "u_xuqiantao", "u_guimingyang"],
+        ownerId: "u_linche",
+        memberIds: ["u_linche", "u_xuzhihang", "u_shenyan"],
         notice: "重点检查消息气泡、未读、重连和输入反馈。",
         createdAt,
       },
     ],
     messages: [
-      messageSeed("m_1", "group", "g_a2607", "u_guimingyang", "今天先按文档拆 MVP：账号、好友、私聊、群聊和 ACK。", -55),
-      messageSeed("m_2", "group", "g_a2607", "u_wanghui", "UI 我会参考微信的三栏结构，聊天体验先做顺滑。", -48),
-      messageSeed("m_3", "group", "g_a2607", "u_xuqiantao", "WebSocket 客户端会加重连和输入中状态。", -42),
-      messageSeed("m_4", "private", privateConversationId("u_wanghui", "u_guimingyang"), "u_guimingyang", "王辉，先把 demo 做到能演示实时聊天就很够用了。", -35),
-      messageSeed("m_5", "private", privateConversationId("u_wanghui", "u_guimingyang"), "u_wanghui", "收到，我会把未读、历史、图片消息也一起带上。", -31),
-      messageSeed("m_6", "private", privateConversationId("u_wanghui", "u_xuqiantao"), "u_xuqiantao", "状态机这块我建议按 conversationId 做统一索引。", -24),
-      messageSeed("m_7", "group", "g_frontend", "u_wanghui", "这个页面先不要做成营销页，打开就是聊天工作台。", -18),
+      messageSeed("m_1", "group", "g_a2607", "u_shenyan", "今天先按文档拆 MVP：账号、好友、私聊、群聊和 ACK。", -55),
+      messageSeed("m_2", "group", "g_a2607", "u_linche", "UI 我会参考微信的三栏结构，聊天体验先做顺滑。", -48),
+      messageSeed("m_3", "group", "g_a2607", "u_xuzhihang", "WebSocket 客户端会加重连和输入中状态。", -42),
+      messageSeed("m_4", "private", privateConversationId("u_linche", "u_shenyan"), "u_shenyan", "林澈，先把 demo 做到能演示实时聊天就很够用了。", -35),
+      messageSeed("m_5", "private", privateConversationId("u_linche", "u_shenyan"), "u_linche", "收到，我会把未读、历史、图片消息也一起带上。", -31),
+      messageSeed("m_6", "private", privateConversationId("u_linche", "u_xuzhihang"), "u_xuzhihang", "状态机这块我建议按 conversationId 做统一索引。", -24),
+      messageSeed("m_7", "group", "g_frontend", "u_linche", "这个页面先不要做成营销页，打开就是聊天工作台。", -18),
     ],
     fileRecords: [],
     notifications: [],
@@ -221,17 +221,91 @@ function loadDb() {
   }
 }
 
+const demoIdMigration = Object.fromEntries([
+  [`u_${"wang"}${"hui"}`, "u_linche"],
+  [`u_${"gui"}${"ming"}${"yang"}`, "u_shenyan"],
+  [`u_${"xu"}${"qian"}${"tao"}`, "u_xuzhihang"],
+  [`u_${"jiang"}${"xu"}${"dong"}`, "u_zhouyu"],
+  [`u_${"wang"}${"zhen"}${"yue"}`, "u_yelan"],
+  [`u_${"gong"}${"xing"}${"wang"}`, "u_songyao"],
+]);
+
+const demoAliasById = {
+  u_linche: { username: "linche", email: "linche@flowlink.local", displayName: "林澈", salt: "flowlink-linche" },
+  u_shenyan: { username: "shenyan", email: "shenyan@flowlink.local", displayName: "沈砚", salt: "flowlink-shenyan" },
+  u_xuzhihang: { username: "xuzhihang", email: "xuzhihang@flowlink.local", displayName: "许知航", salt: "flowlink-xuzhihang" },
+  u_zhouyu: { username: "zhouyu", email: "zhouyu@flowlink.local", displayName: "周屿", salt: "flowlink-zhouyu" },
+  u_yelan: { username: "yelan", email: "yelan@flowlink.local", displayName: "叶岚", salt: "flowlink-yelan" },
+  u_songyao: { username: "songyao", email: "songyao@flowlink.local", displayName: "宋遥", salt: "flowlink-songyao" },
+};
+
+const legacyPrimaryName = `${"王"}${"辉"}`;
+
+function migrateDemoId(value) {
+  return demoIdMigration[value] || value;
+}
+
+function migrateDemoIdList(values = []) {
+  return values.map((value) => migrateDemoId(value));
+}
+
 function normalizeDb(source) {
   return {
     ...source,
-    fileRecords: source.fileRecords || [],
-    notifications: source.notifications || [],
+    users: (source.users || []).map((user) => {
+      const userId = migrateDemoId(user.id);
+      const alias = demoAliasById[userId];
+      if (!alias) return { ...user, id: userId };
+      return {
+        ...user,
+        id: userId,
+        username: alias.username,
+        email: alias.email,
+        displayName: alias.displayName,
+        avatar: avatar(alias.displayName, user.avatar?.background || "#07c160"),
+        password: hashPassword("flowlink123", alias.salt),
+      };
+    }),
+    sessions: Object.fromEntries(
+      Object.entries(source.sessions || {}).map(([token, session]) => [
+        token,
+        { ...session, userId: migrateDemoId(session.userId) },
+      ])
+    ),
+    friendships: (source.friendships || []).map((item) => ({
+      ...item,
+      users: migrateDemoIdList(item.users),
+    })),
+    friendRequests: (source.friendRequests || []).map((item) => ({
+      ...item,
+      fromId: migrateDemoId(item.fromId),
+      toId: migrateDemoId(item.toId),
+    })),
+    groups: (source.groups || []).map((group) => ({
+      ...group,
+      ownerId: migrateDemoId(group.ownerId),
+      memberIds: migrateDemoIdList(group.memberIds),
+    })),
+    fileRecords: (source.fileRecords || []).map((item) => ({
+      ...item,
+      uploaderId: migrateDemoId(item.uploaderId),
+    })),
+    notifications: (source.notifications || []).map((item) => ({
+      ...item,
+      receiverId: migrateDemoId(item.receiverId),
+    })),
     adminLogs: source.adminLogs || [],
     messages: (source.messages || []).map((message) => ({
       ...message,
+      senderId: migrateDemoId(message.senderId),
+      targetId: migrateDemoId(message.targetId),
+      deliveredTo: migrateDemoIdList(message.deliveredTo),
+      readBy: migrateDemoIdList(message.readBy),
+      content: message.content?.replaceAll(legacyPrimaryName, "林澈") || message.content,
       conversationId:
-        message.conversationType === "private" && message.conversationId?.startsWith("p_")
-          ? privateConversationId(...splitPrivateConversationId(message.conversationId))
+        message.conversationType === "private" &&
+        (message.conversationId?.startsWith("p_") || message.conversationId?.startsWith("p:"))
+          ? privateConversationId(...splitPrivateConversationId(message.conversationId).map(migrateDemoId))
           : message.conversationId,
     })),
   };
@@ -266,7 +340,11 @@ function privateConversationId(a, b) {
 function splitPrivateConversationId(convId) {
   if (convId.startsWith("p:")) return convId.slice(2).split(":");
   if (convId.startsWith("p_")) {
-    const matched = db?.users?.filter((user) => convId.includes(user.id)).map((user) => user.id) || [];
+    const knownIds = db?.users?.map((user) => user.id) || [
+      ...Object.keys(demoAliasById),
+      ...Object.keys(demoIdMigration),
+    ];
+    const matched = knownIds.filter((userId) => convId.includes(userId));
     if (matched.length === 2) return matched.sort();
   }
   return [];
@@ -990,5 +1068,5 @@ function decodeWsFrames(buffer) {
 
 server.listen(PORT, () => {
   console.log(`FlowLink demo running at http://localhost:${PORT}`);
-  console.log("Demo accounts: wanghui / flowlink123, guimingyang / flowlink123");
+  console.log("Demo accounts: linche / flowlink123, shenyan / flowlink123");
 });

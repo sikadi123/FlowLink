@@ -17,9 +17,9 @@ http://localhost:3000
 内置演示账号：
 
 ```text
-wanghui / flowlink123
-guimingyang / flowlink123
-xuqiantao / flowlink123
+linche / flowlink123
+shenyan / flowlink123
+xuzhihang / flowlink123
 ```
 
 ## 当前结构
