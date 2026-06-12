@@ -478,6 +478,38 @@ button {
   object-fit: cover;
 }
 
+.file-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: min(280px, 100%);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.file-bubble .file-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 6px;
+  background: #eef7f1;
+  color: var(--green-dark);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.file-bubble strong,
+.file-bubble small {
+  display: block;
+}
+
+.file-bubble small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .bubble.recalled {
   background: #e5e7eb;
   color: var(--muted);
@@ -745,6 +777,111 @@ button {
 .search-result .actions {
   display: flex;
   gap: 8px;
+}
+
+.rich-profile {
+  gap: 16px;
+}
+
+.profile-cover {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafb;
+  padding: 14px;
+}
+
+.profile-cover h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.profile-cover span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-form {
+  grid-template-columns: 1fr 1fr;
+}
+
+.profile-form .full {
+  grid-column: 1 / -1;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.info-grid div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 10px;
+}
+
+.info-grid span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.info-grid strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.group-panel section {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle-line {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink) !important;
+}
+
+.toggle-line input {
+  width: auto;
+  height: auto;
+}
+
+.danger-zone {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.member-line > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.member-line .small-action {
+  flex: 0 0 auto;
+}
+
+.member-line strong,
+.member-line span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toast {
