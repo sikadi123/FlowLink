@@ -60,6 +60,16 @@ export function createApiController(hub) {
         return sendJson(res, 200, ok(groupService.setMemberMute(user, groupMuteMatch[1], await readJson(req), hub)));
       }
 
+      const groupAdminMatch = pathname.match(/^\/api\/groups\/([^/]+)\/admins$/);
+      if (groupAdminMatch && req.method === "POST") {
+        return sendJson(res, 200, ok(groupService.setAdmin(user, groupAdminMatch[1], await readJson(req), hub)));
+      }
+
+      const groupOwnerMatch = pathname.match(/^\/api\/groups\/([^/]+)\/owner$/);
+      if (groupOwnerMatch && req.method === "POST") {
+        return sendJson(res, 200, ok(groupService.transferOwner(user, groupOwnerMatch[1], await readJson(req), hub)));
+      }
+
       const removeMemberMatch = pathname.match(/^\/api\/groups\/([^/]+)\/members\/([^/]+)$/);
       if (removeMemberMatch && req.method === "DELETE") {
         return sendJson(res, 200, ok(groupService.removeMember(user, removeMemberMatch[1], removeMemberMatch[2], hub)));

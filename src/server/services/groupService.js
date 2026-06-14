@@ -15,6 +15,10 @@ function assertManager(group, userId) {
   if (group.ownerId !== userId && !group.admins?.includes(userId)) throw new ApiError(403, "只有群主或管理员可以操作");
 }
 
+function assertOwner(group, userId) {
+  if (group.ownerId !== userId) throw new ApiError(403, "只有群主可以操作");
+}
+
 export function canManageGroup(group, userId) {
   return group?.ownerId === userId || group?.admins?.includes(userId);
 }
@@ -112,6 +116,7 @@ export const groupService = {
     assertMember(group, currentUser.id);
     assertManager(group, currentUser.id);
     if (memberId === group.ownerId) throw new ApiError(400, "不能移除群主");
+    if (group.admins?.includes(memberId) && group.ownerId !== currentUser.id) throw new ApiError(403, "只有群主可以移除管理员");
     group.memberIds = group.memberIds.filter((idValue) => idValue !== memberId);
     group.admins = (group.admins || []).filter((idValue) => idValue !== memberId);
     group.mutedMembers = (group.mutedMembers || []).filter((idValue) => idValue !== memberId);
@@ -136,7 +141,7 @@ export const groupService = {
   dissolve(currentUser, groupId, hub) {
     const group = getGroup(groupId);
     assertMember(group, currentUser.id);
-    if (group.ownerId !== currentUser.id) throw new ApiError(403, "只有群主可以解散群聊");
+    assertOwner(group, currentUser.id);
     group.status = "dissolved";
     group.dissolvedAt = nowIso();
     store.save();
@@ -163,6 +168,43 @@ export const groupService = {
       createNotification(memberId, "group_unmuted", `你已在 ${group.name} 中解除禁言`);
     }
     group.updatedAt = nowIso();
+    store.save();
+    hub.notifyUsers(group.memberIds, "group_updated", { group: serializeGroup(group, hub) });
+    return serializeGroup(group, hub);
+  },
+
+  setAdmin(currentUser, groupId, body, hub) {
+    const group = getGroup(groupId);
+    assertMember(group, currentUser.id);
+    assertOwner(group, currentUser.id);
+    const memberId = String(body.memberId || "");
+    if (!group.memberIds.includes(memberId)) throw new ApiError(404, "群成员不存在");
+    if (memberId === group.ownerId) throw new ApiError(400, "群主已经拥有管理员权限");
+    group.admins = group.admins || [];
+    if (body.admin) {
+      if (!group.admins.includes(memberId)) group.admins.push(memberId);
+      createNotification(memberId, "group_admin_added", `你已成为 ${group.name} 的管理员`);
+    } else {
+      group.admins = group.admins.filter((idValue) => idValue !== memberId);
+      createNotification(memberId, "group_admin_removed", `你已不再是 ${group.name} 的管理员`);
+    }
+    group.updatedAt = nowIso();
+    store.save();
+    hub.notifyUsers(group.memberIds, "group_updated", { group: serializeGroup(group, hub) });
+    return serializeGroup(group, hub);
+  },
+
+  transferOwner(currentUser, groupId, body, hub) {
+    const group = getGroup(groupId);
+    assertMember(group, currentUser.id);
+    assertOwner(group, currentUser.id);
+    const memberId = String(body.memberId || "");
+    if (!group.memberIds.includes(memberId)) throw new ApiError(404, "群成员不存在");
+    if (memberId === currentUser.id) throw new ApiError(400, "不能转让给自己");
+    group.ownerId = memberId;
+    group.admins = [...new Set([...(group.admins || []), memberId])];
+    group.updatedAt = nowIso();
+    createNotification(memberId, "group_owner_transfer", `你已成为 ${group.name} 的群主`);
     store.save();
     hub.notifyUsers(group.memberIds, "group_updated", { group: serializeGroup(group, hub) });
     return serializeGroup(group, hub);

@@ -171,15 +171,25 @@ export class WsHub {
       return;
     }
     if (packet.action === "send_message") {
-      const message = messageService.create(user.id, payload, this);
-      client.send({
-        action: "message_ack",
-        payload: {
-          clientId: payload.clientId || null,
-          messageId: message.id,
-          status: message.deliveredTo?.length ? "delivered" : "sent",
-        },
-      });
+      try {
+        const message = messageService.create(user.id, payload, this);
+        client.send({
+          action: "message_ack",
+          payload: {
+            clientId: payload.clientId || null,
+            messageId: message.id,
+            status: message.deliveredTo?.length ? "delivered" : "sent",
+          },
+        });
+      } catch (error) {
+        client.send({
+          action: "message_failed",
+          payload: {
+            clientId: payload.clientId || null,
+            message: error.message || "消息发送失败",
+          },
+        });
+      }
       return;
     }
     if (packet.action === "typing") {

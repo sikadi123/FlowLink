@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS `file_record` (
   `message_id` BIGINT,
   `file_name` VARCHAR(255) NOT NULL,
   `storage_path` VARCHAR(255) NOT NULL,
+  `access_url` VARCHAR(512),
   `file_size` BIGINT NOT NULL,
   `file_type` VARCHAR(80),
   `upload_time` DATETIME DEFAULT CURRENT_TIMESTAMP,

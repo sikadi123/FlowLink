@@ -23,9 +23,9 @@ function assertCanSpeak(userId, type, targetId) {
   if (type !== "group") return;
   const group = groupService.getGroup(targetId);
   if (!group) throw new ApiError(404, "群聊不存在");
+  if ((group.mutedMembers || []).includes(userId)) throw new ApiError(403, "你已被管理员禁言");
   if (canManageGroup(group, userId)) return;
   if (group.muteAll) throw new ApiError(403, "当前群聊已开启全员禁言");
-  if ((group.mutedMembers || []).includes(userId)) throw new ApiError(403, "你已被管理员禁言");
 }
 
 export function getConversationRecipients(senderId, type, conversationIdOrTargetId) {

@@ -1,0 +1,55 @@
+package com.flowlink.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "flowlink")
+public class FlowLinkProperties {
+  private final Netty netty = new Netty();
+  private final Session session = new Session();
+  private final Minio minio = new Minio();
+
+  public Netty getNetty() {
+    return netty;
+  }
+
+  public Session getSession() {
+    return session;
+  }
+
+  public Minio getMinio() {
+    return minio;
+  }
+
+  public static class Netty {
+    private int port = 8090;
+    private String path = "/ws";
+    public int getPort() { return port; }
+    public void setPort(int port) { this.port = port; }
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
+  }
+
+  public static class Session {
+    private long ttlSeconds = 604800;
+    public long getTtlSeconds() { return ttlSeconds; }
+    public void setTtlSeconds(long ttlSeconds) { this.ttlSeconds = ttlSeconds; }
+  }
+
+  public static class Minio {
+    private String endpoint;
+    private String accessKey;
+    private String secretKey;
+    private String bucket;
+    private String publicBaseUrl;
+    public String getEndpoint() { return endpoint; }
+    public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+    public String getAccessKey() { return accessKey; }
+    public void setAccessKey(String accessKey) { this.accessKey = accessKey; }
+    public String getSecretKey() { return secretKey; }
+    public void setSecretKey(String secretKey) { this.secretKey = secretKey; }
+    public String getBucket() { return bucket; }
+    public void setBucket(String bucket) { this.bucket = bucket; }
+    public String getPublicBaseUrl() { return publicBaseUrl; }
+    public void setPublicBaseUrl(String publicBaseUrl) { this.publicBaseUrl = publicBaseUrl; }
+  }
+}
