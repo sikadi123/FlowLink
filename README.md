@@ -1,25 +1,46 @@
-# FlowLink
+# FlowLink 即时通讯系统
 
-FlowLink 是一个基于需求文档和软件设计方案搭建的即时通讯系统 demo。当前版本聚焦“可演示、可扩展、结构清晰”：前端是微信风格聊天工作台，后端按接口层、业务层、持久层、实时通信层拆分。
+FlowLink 当前已经整理为前后端分离项目：后端使用 Spring Boot + MyBatis + Netty 4.1，前端使用 Vue 3 + Pinia。项目保留本地演示模式，也保留 MySQL、Redis、MinIO 的正式架构配置。
 
-## 运行
+## 快速启动
 
-PowerShell 如果禁止 `npm.ps1`，可以直接用 Node 启动：
+推荐使用完整一键启动。它会自动启动 MySQL、Redis、MinIO，再启动 Spring Boot 后端和 Vue 前端：
 
-```powershell
-node server.mjs
-```
-
-也可以使用：
-
-```powershell
-npm.cmd start
+```bat
+start-flowlink.cmd
 ```
 
 启动后访问：
 
 ```text
-http://localhost:3000
+前端页面: http://localhost:5173
+后端 HTTP: http://localhost:8080
+后端 Netty WebSocket: ws://localhost:8090/ws
+```
+
+停止前后端：
+
+```bat
+stop-flowlink.cmd
+```
+
+如果演示数据出现中文乱码，重置 FlowLink 的 Docker 数据卷并重新导入 UTF-8 种子数据：
+
+```bat
+reset-flowlink-data.cmd
+```
+
+只停止 MySQL、Redis、MinIO：
+
+```bat
+stop-infra.cmd
+```
+
+MinIO 控制台：
+
+```text
+http://localhost:9001
+minioadmin / minioadmin
 ```
 
 演示账号：
@@ -28,65 +49,132 @@ http://localhost:3000
 linche / flowlink123
 shenyan / flowlink123
 xuzhihang / flowlink123
+zhouyu / flowlink123
 ```
 
-## 当前能力
+本地演示模式不需要 MySQL、Redis、MinIO，适合快速看前端和接口：
 
-- 登录、注册、好友搜索、好友申请与审批
-- 私聊、群聊、历史消息、未读计数、ACK、已读回执、输入中提示
-- 文本、图片、文件消息，文件消息以卡片形式展示并支持下载
-- 2 分钟内消息撤回
-- 完整个人资料编辑：昵称、用户名、邮箱、职责、部门、电话、地区、状态、简介、头像色
-- 群聊管理：创建群聊、编辑群名/公告/介绍、免打扰、邀请成员、移除成员、退出群聊、群主解散群聊
-- 群禁言：支持全员禁言，也支持管理员对单个成员禁言/解除禁言
-- 本地 JSON 持久化，并提供 MySQL 版 `database/schema.sql` 与 `database/seed.sql`
+```bat
+start-dev.cmd
+```
 
-## 后端结构
+如果 PowerShell 提示禁止运行 `npm.ps1`，请使用 `npm.cmd`：
+
+```powershell
+cd C:\Users\sikad\Desktop\FlowLink\frontend
+npm.cmd run dev
+```
+
+## 分开启动
+
+后端本地模式不需要安装 MySQL、Redis、MinIO，会使用 H2 内存数据库、内存状态降级和本地文件目录。
+
+```powershell
+cd C:\Users\sikad\Desktop\FlowLink\backend
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+前端：
+
+```powershell
+cd C:\Users\sikad\Desktop\FlowLink\frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+## 项目结构
 
 ```text
-server.mjs                         启动入口
-src/server/app.js                  HTTP Server 与静态资源
-src/server/controllers/            REST API 表现层
-src/server/realtime/               WebSocket 长连接与事件推送
-src/server/services/               用户、好友、群组、消息业务层
-src/server/persistence/store.js    本地 JSON 持久层，后续可替换 MySQL/Redis
-src/server/domain/seed.js          演示种子数据
-src/server/shared/                 通用工具、错误和响应结构
-public/                            前端单页聊天工作台
-database/schema.sql                MySQL 建表脚本
-database/seed.sql                  MySQL 演示种子数据
+backend/                         Spring Boot 后端
+  src/main/java/com/flowlink/
+    controller/                  REST API 控制层
+    service/                     业务服务层
+    mapper/                      MyBatis Mapper/DAO
+    domain/                      领域实体
+    realtime/                    Netty 4.1 长连接网关
+    config/                      配置、MinIO、静态文件访问
+  src/main/resources/
+    application.yml              正式环境配置
+    application-local.yml        本地演示配置
+    schema-h2.sql                H2 本地建表
+    data-h2.sql                  H2 演示数据
+
+frontend/                        Vue 3 + Pinia 前端
+  src/components/                页面组件
+  src/stores/                    Pinia 状态管理
+  src/api/                       请求封装
+
+database/                        MySQL 建表和迁移脚本
+src/, public/, server.mjs        旧 Node demo，仅作历史参考
 ```
 
-## 接口概览
+## 当前后端能力
+
+- 登录、注册、退出登录，会话令牌由 Redis 管理，本地模式自动降级到内存。
+- 用户资料修改、用户搜索。
+- 好友搜索、好友申请、通过/拒绝申请、删除好友、通知。
+- 群聊创建、编辑资料、邀请成员、移除成员、退出群聊、解散群聊。
+- 群管理员、群主转让、单成员禁言、全员禁言。
+- 私聊/群聊历史消息、发送消息、撤回消息、未读数。
+- 文件上传：正式模式上传 MinIO，本地模式保存到 `backend/uploads`，数据库只保存 `file_record` 元数据和访问地址。
+- Netty 4.1 WebSocket 网关：`ws://localhost:8090/ws?token=...`。
+
+## 正式依赖
+
+正式配置在 `backend/src/main/resources/application.yml`，默认连接 Docker Compose 启动的服务：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/flowlink?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: flowlink
+    password: flowlink123
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+flowlink:
+  storage:
+    mode: minio
+  minio:
+    endpoint: http://localhost:9000
+    bucket: flowlink
+```
+
+Docker Compose 会自动执行：
 
 ```text
-POST   /api/auth/login
-POST   /api/auth/register
-POST   /api/auth/logout
-GET    /api/bootstrap
-PATCH  /api/me
-GET    /api/users?q=
-POST   /api/friends/request
-POST   /api/friends/respond
-POST   /api/groups
-PATCH  /api/groups/:id
-DELETE /api/groups/:id
-POST   /api/groups/:id/members
-DELETE /api/groups/:id/members/:userId
-POST   /api/groups/:id/mutes
-POST   /api/groups/:id/leave
-GET    /api/messages/history?type=&targetId=
-POST   /api/messages/send
-POST   /api/messages/:id/recall
-WS     /ws?token=
+database/schema.sql
+database/seed.sql
 ```
 
-文件消息仍走 `/api/messages/send` 或 WebSocket `send_message`，`messageType` 传 `file`，并附带 `fileName`、`fileSize`、`fileType`。演示版单文件限制为 `2MB`。
+也可以手动初始化 MySQL：
 
-## 后续升级路线
+```powershell
+mysql -u root -p < database\schema.sql
+mysql -u root -p < database\seed.sql
+```
 
-1. 将 `src/server/services` 对应迁移为 Spring Boot Service。
-2. 将 `src/server/realtime` 的原生 WebSocket 替换为 Netty 4.1 长连接网关。
-3. 将 `store.js` 替换为 MySQL Mapper/DAO，并用 Redis 管理在线状态、未读数和会话令牌。
-4. 将文件内容从 demo dataURL 迁移到 MinIO/对象存储，只在消息表和 `file_record` 中保存元数据与访问地址。
-5. 将前端继续演进为 Vue 3 + Pinia，复用当前页面结构和交互流程。
+基础设施停止：
+
+```bat
+stop-infra.cmd
+```
+
+如果需要删除 MySQL、Redis、MinIO 的数据卷重新初始化：
+
+```powershell
+docker compose down -v
+start-infra.cmd
+```
+
+## 常见问题
+
+Maven 参数报 `Unknown lifecycle phase ".run.profiles=local"` 时，请把 profile 参数加引号：
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+前端上传后文件不显示时，确认 Vite 代理包含 `/uploads`，当前 `frontend/vite.config.js` 已配置。

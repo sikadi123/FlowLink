@@ -2,12 +2,15 @@ package com.flowlink.controller;
 
 import com.flowlink.common.ApiResponse;
 import com.flowlink.domain.ChatGroup;
+import com.flowlink.domain.GroupMember;
 import com.flowlink.domain.User;
 import com.flowlink.service.AuthService;
 import com.flowlink.service.GroupService;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -95,6 +98,61 @@ public class GroupController {
     User user = authService.requireUser(authorization);
     Long memberId = Long.valueOf(String.valueOf(body.get("memberId")));
     groupService.transferOwner(user.getId(), id, memberId);
+    return ApiResponse.ok(true);
+  }
+
+  @PostMapping("/{id}/members")
+  public ApiResponse<Boolean> invite(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable Long id,
+      @RequestBody Map<String, Object> body
+  ) {
+    User user = authService.requireUser(authorization);
+    List<Long> memberIds = ((List<?>) body.getOrDefault("memberIds", List.of())).stream()
+        .map(value -> Long.valueOf(String.valueOf(value)))
+        .toList();
+    groupService.invite(user.getId(), id, memberIds);
+    return ApiResponse.ok(true);
+  }
+
+  @GetMapping("/{id}/members")
+  public ApiResponse<List<GroupMember>> members(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable Long id
+  ) {
+    User user = authService.requireUser(authorization);
+    groupService.requireMember(id, user.getId());
+    return ApiResponse.ok(groupService.members(id));
+  }
+
+  @DeleteMapping("/{id}/members/{memberId}")
+  public ApiResponse<Boolean> removeMember(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable Long id,
+      @PathVariable Long memberId
+  ) {
+    User user = authService.requireUser(authorization);
+    groupService.removeMember(user.getId(), id, memberId);
+    return ApiResponse.ok(true);
+  }
+
+  @PostMapping("/{id}/leave")
+  public ApiResponse<Boolean> leave(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable Long id
+  ) {
+    User user = authService.requireUser(authorization);
+    groupService.leave(user.getId(), id);
+    return ApiResponse.ok(true);
+  }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<Boolean> dissolve(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable Long id
+  ) {
+    User user = authService.requireUser(authorization);
+    groupService.dissolve(user.getId(), id);
     return ApiResponse.ok(true);
   }
 }

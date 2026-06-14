@@ -3,21 +3,29 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/flowlink?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: jdbc:mysql://localhost:3307/flowlink?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: flowlink
+    password: flowlink123
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
       host: localhost
       port: 6379
       database: 0
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
 
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
 flowlink:
+  storage:
+    mode: minio
+    local-dir: uploads
+    public-path: /uploads
   netty:
     port: 8090
     path: /ws

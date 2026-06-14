@@ -23,6 +23,11 @@ public class AuthController {
     return ApiResponse.ok(authService.login(body.getOrDefault("account", ""), body.getOrDefault("password", "")));
   }
 
+  @PostMapping("/register")
+  public ApiResponse<Map<String, Object>> register(@RequestBody Map<String, String> body) {
+    return ApiResponse.ok(authService.register(body));
+  }
+
   @PostMapping("/logout")
   public ApiResponse<Boolean> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {
     authService.logout(authService.tokenOf(authorization));

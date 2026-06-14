@@ -13,15 +13,20 @@ public interface GroupMemberMapper {
   @Select("select * from group_member where group_id = #{groupId} and user_id = #{userId} and status = 1")
   GroupMember findActive(@Param("groupId") Long groupId, @Param("userId") Long userId);
 
+  @Select("select * from group_member where group_id = #{groupId} and user_id = #{userId}")
+  GroupMember findAny(@Param("groupId") Long groupId, @Param("userId") Long userId);
+
   @Select("select * from group_member where group_id = #{groupId} and status = 1")
   List<GroupMember> findActiveMembers(Long groupId);
 
   @Insert("""
       insert into group_member(group_id, user_id, role, muted, status)
       values(#{groupId}, #{userId}, #{role}, #{muted}, 1)
-      on duplicate key update status = 1, role = values(role)
       """)
-  void upsert(GroupMember member);
+  void insert(GroupMember member);
+
+  @Update("update group_member set status = 1, role = #{role}, muted = #{muted} where group_id = #{groupId} and user_id = #{userId}")
+  void restore(GroupMember member);
 
   @Update("update group_member set role = #{role} where group_id = #{groupId} and user_id = #{userId}")
   void updateRole(@Param("groupId") Long groupId, @Param("userId") Long userId, @Param("role") int role);

@@ -7,6 +7,7 @@ public class FlowLinkProperties {
   private final Netty netty = new Netty();
   private final Session session = new Session();
   private final Minio minio = new Minio();
+  private final Storage storage = new Storage();
 
   public Netty getNetty() {
     return netty;
@@ -18,6 +19,10 @@ public class FlowLinkProperties {
 
   public Minio getMinio() {
     return minio;
+  }
+
+  public Storage getStorage() {
+    return storage;
   }
 
   public static class Netty {
@@ -51,5 +56,17 @@ public class FlowLinkProperties {
     public void setBucket(String bucket) { this.bucket = bucket; }
     public String getPublicBaseUrl() { return publicBaseUrl; }
     public void setPublicBaseUrl(String publicBaseUrl) { this.publicBaseUrl = publicBaseUrl; }
+  }
+
+  public static class Storage {
+    private String mode = "minio";
+    private String localDir = "uploads";
+    private String publicPath = "/uploads";
+    public String getMode() { return mode; }
+    public void setMode(String mode) { this.mode = mode; }
+    public String getLocalDir() { return localDir; }
+    public void setLocalDir(String localDir) { this.localDir = localDir; }
+    public String getPublicPath() { return publicPath; }
+    public void setPublicPath(String publicPath) { this.publicPath = publicPath; }
   }
 }

@@ -96,13 +96,52 @@ public class GroupService {
     groupMapper.transferOwner(groupId, memberId);
   }
 
+  @Transactional
+  public void invite(Long operatorId, Long groupId, List<Long> memberIds) {
+    requireManager(groupId, operatorId);
+    for (Long memberId : memberIds) addMember(groupId, memberId, ROLE_MEMBER);
+  }
+
+  @Transactional
+  public void removeMember(Long operatorId, Long groupId, Long memberId) {
+    requireManager(groupId, operatorId);
+    GroupMember operator = requireMember(groupId, operatorId);
+    GroupMember target = requireMember(groupId, memberId);
+    if (target.getRole() == ROLE_OWNER) throw new BusinessException(403, "不能移除群主");
+    if (target.getRole() == ROLE_ADMIN && operator.getRole() != ROLE_OWNER) throw new BusinessException(403, "只有群主可以移除管理员");
+    memberMapper.markLeft(groupId, memberId);
+  }
+
+  @Transactional
+  public void leave(Long userId, Long groupId) {
+    GroupMember member = requireMember(groupId, userId);
+    if (member.getRole() == ROLE_OWNER) throw new BusinessException(403, "群主不能直接退出，请先转让群主或解散群聊");
+    memberMapper.markLeft(groupId, userId);
+  }
+
+  @Transactional
+  public void dissolve(Long ownerId, Long groupId) {
+    GroupMember member = requireMember(groupId, ownerId);
+    if (member.getRole() != ROLE_OWNER) throw new BusinessException(403, "只有群主可以解散群聊");
+    groupMapper.dissolve(groupId);
+  }
+
+  public List<GroupMember> members(Long groupId) {
+    return memberMapper.findActiveMembers(groupId);
+  }
+
   public void addMember(Long groupId, Long userId, int role) {
+    GroupMember existed = memberMapper.findAny(groupId, userId);
     GroupMember member = new GroupMember();
     member.setGroupId(groupId);
     member.setUserId(userId);
     member.setRole(role);
     member.setMuted(false);
-    memberMapper.upsert(member);
+    if (existed == null) {
+      memberMapper.insert(member);
+    } else {
+      memberMapper.restore(member);
+    }
   }
 
   private void requireManager(Long groupId, Long userId) {

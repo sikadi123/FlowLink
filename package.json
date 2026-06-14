@@ -1,11 +1,13 @@
 {
-  "name": "flowlink-demo",
-  "version": "0.1.0",
-  "description": "FlowLink local chat demo with a zero-dependency Node server and WeChat-inspired UI.",
+  "name": "flowlink",
+  "version": "0.2.0",
+  "description": "FlowLink Spring Boot + Netty + Vue 3 instant messaging demo.",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node server.mjs"
+    "dev": "cd frontend && npm.cmd run dev",
+    "build": "cd frontend && npm.cmd run build",
+    "backend": "cd backend && mvnw.cmd spring-boot:run \"-Dspring-boot.run.profiles=local\"",
+    "start": "start-dev.cmd"
   },
   "engines": {
     "node": ">=18"

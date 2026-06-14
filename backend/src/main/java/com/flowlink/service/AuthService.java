@@ -6,6 +6,7 @@ import com.flowlink.mapper.UserMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,33 @@ public class AuthService {
     return Map.of("token", token, "user", publicUser(user));
   }
 
+  public Map<String, Object> register(Map<String, String> body) {
+    String username = text(body.get("username"));
+    String email = text(body.get("email"));
+    String password = text(body.get("password"));
+    String displayName = text(body.get("displayName"));
+    if (username.isBlank() || password.length() < 6) throw new BusinessException(400, "账号不能为空，密码至少 6 位");
+    if (displayName.isBlank()) displayName = username;
+    if (email.isBlank()) email = null;
+    if (userMapper.countByUsernameOrEmail(username, email) > 0) throw new BusinessException(409, "账号或邮箱已存在");
+
+    User user = new User();
+    user.setUsername(username);
+    user.setEmail(email);
+    user.setPasswordHash(sha256(password));
+    user.setDisplayName(displayName);
+    user.setAvatarUrl("");
+    user.setBio("");
+    user.setRoleTitle("新成员");
+    user.setDepartment("FlowLink");
+    user.setPhone("");
+    user.setLocation("");
+    user.setStatusMessage("刚刚加入 FlowLink");
+    user.setStatus(2);
+    userMapper.insert(user);
+    return login(username, password);
+  }
+
   public void logout(String token) {
     Long userId = redisStateService.getSessionUser(token);
     redisStateService.removeSession(token);
@@ -50,20 +78,20 @@ public class AuthService {
   }
 
   public static Map<String, Object> publicUser(User user) {
-    return Map.of(
-        "id", user.getId(),
-        "username", nullToEmpty(user.getUsername()),
-        "email", nullToEmpty(user.getEmail()),
-        "displayName", nullToEmpty(user.getDisplayName()),
-        "avatarUrl", nullToEmpty(user.getAvatarUrl()),
-        "bio", nullToEmpty(user.getBio()),
-        "role", nullToEmpty(user.getRoleTitle()),
-        "department", nullToEmpty(user.getDepartment()),
-        "phone", nullToEmpty(user.getPhone()),
-        "location", nullToEmpty(user.getLocation()),
-        "statusMessage", nullToEmpty(user.getStatusMessage()),
-        "status", user.getStatus() != null && user.getStatus() == 3 ? "online" : "offline"
-    );
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("id", user.getId());
+    result.put("username", nullToEmpty(user.getUsername()));
+    result.put("email", nullToEmpty(user.getEmail()));
+    result.put("displayName", nullToEmpty(user.getDisplayName()));
+    result.put("avatarUrl", nullToEmpty(user.getAvatarUrl()));
+    result.put("bio", nullToEmpty(user.getBio()));
+    result.put("role", nullToEmpty(user.getRoleTitle()));
+    result.put("department", nullToEmpty(user.getDepartment()));
+    result.put("phone", nullToEmpty(user.getPhone()));
+    result.put("location", nullToEmpty(user.getLocation()));
+    result.put("statusMessage", nullToEmpty(user.getStatusMessage()));
+    result.put("status", user.getStatus() != null && user.getStatus() == 3 ? "online" : "offline");
+    return result;
   }
 
   private boolean matches(String password, String stored) {
@@ -82,5 +110,9 @@ public class AuthService {
 
   private static String nullToEmpty(String value) {
     return value == null ? "" : value;
+  }
+
+  private String text(String value) {
+    return value == null ? "" : value.trim();
   }
 }

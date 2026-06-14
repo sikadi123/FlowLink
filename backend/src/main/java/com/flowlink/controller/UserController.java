@@ -3,6 +3,7 @@ package com.flowlink.controller;
 import com.flowlink.common.ApiResponse;
 import com.flowlink.domain.User;
 import com.flowlink.service.AuthService;
+import com.flowlink.service.SocialService;
 import com.flowlink.service.UserProfileService;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
   private final AuthService authService;
   private final UserProfileService profileService;
+  private final SocialService socialService;
 
-  public UserController(AuthService authService, UserProfileService profileService) {
+  public UserController(AuthService authService, UserProfileService profileService, SocialService socialService) {
     this.authService = authService;
     this.profileService = profileService;
+    this.socialService = socialService;
   }
 
   @PatchMapping("/api/me")
@@ -37,7 +40,7 @@ public class UserController {
       @RequestHeader(value = "Authorization", required = false) String authorization,
       @RequestParam(defaultValue = "") String q
   ) {
-    authService.requireUser(authorization);
-    return ApiResponse.ok(profileService.search(q));
+    User user = authService.requireUser(authorization);
+    return ApiResponse.ok(socialService.searchUsers(user, q));
   }
 }
