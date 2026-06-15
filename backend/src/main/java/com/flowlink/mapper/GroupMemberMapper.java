@@ -17,7 +17,7 @@ public interface GroupMemberMapper {
   GroupMember findAny(@Param("groupId") Long groupId, @Param("userId") Long userId);
 
   @Select("select * from group_member where group_id = #{groupId} and status = 1")
-  List<GroupMember> findActiveMembers(Long groupId);
+  List<GroupMember> findActiveMembers(@Param("groupId") Long groupId);
 
   @Insert("""
       insert into group_member(group_id, user_id, role, muted, status)

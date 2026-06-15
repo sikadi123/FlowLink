@@ -12,10 +12,10 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface UserMapper {
   @Select("select * from `user` where id = #{id}")
-  User findById(Long id);
+  User findById(@Param("id") Long id);
 
   @Select("select * from `user` where username = #{account} or email = #{account} limit 1")
-  User findByAccount(String account);
+  User findByAccount(@Param("account") String account);
 
   @Select("select count(*) from `user` where username = #{username} or email = #{email}")
   int countByUsernameOrEmail(@Param("username") String username, @Param("email") String email);
@@ -27,7 +27,7 @@ public interface UserMapper {
       order by display_name
       limit 30
       """)
-  List<User> search(String keyword);
+  List<User> search(@Param("keyword") String keyword);
 
   @Insert("""
       insert into `user`(username, email, password_hash, display_name, avatar_url, bio, role_title, department, phone, location, status_message, status)

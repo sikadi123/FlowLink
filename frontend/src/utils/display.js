@@ -2,6 +2,16 @@ export function avatarText(item) {
   return (item?.displayName || item?.name || item?.username || "F").slice(0, 1).toUpperCase();
 }
 
+export function avatarStyle(item) {
+  const value = item?.avatarUrl || "";
+  return value.startsWith("linear-gradient") ? { background: value } : {};
+}
+
+export function avatarImage(item) {
+  const value = item?.avatarUrl || "";
+  return value && !value.startsWith("linear-gradient") ? value : "";
+}
+
 export function entityTitle(item) {
   return item?.name || item?.displayName || item?.username || "未命名";
 }

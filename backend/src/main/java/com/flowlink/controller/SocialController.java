@@ -50,10 +50,30 @@ public class SocialController {
   @DeleteMapping("/{friendId}")
   public ApiResponse<Boolean> deleteFriend(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long friendId
+      @PathVariable("friendId") Long friendId
   ) {
     User user = authService.requireUser(authorization);
     socialService.deleteFriend(user, friendId);
+    return ApiResponse.ok(true);
+  }
+
+  @PostMapping("/{friendId}/block")
+  public ApiResponse<Boolean> blockFriend(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable("friendId") Long friendId
+  ) {
+    User user = authService.requireUser(authorization);
+    socialService.blockFriend(user, friendId);
+    return ApiResponse.ok(true);
+  }
+
+  @PostMapping("/{friendId}/unblock")
+  public ApiResponse<Boolean> unblockFriend(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable("friendId") Long friendId
+  ) {
+    User user = authService.requireUser(authorization);
+    socialService.unblockFriend(user, friendId);
     return ApiResponse.ok(true);
   }
 }

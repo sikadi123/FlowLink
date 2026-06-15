@@ -17,15 +17,24 @@ import org.springframework.stereotype.Component;
 public class WebSocketAuthHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
   private final RedisStateService redisStateService;
   private final ChannelRegistry registry;
+  private final String path;
 
-  public WebSocketAuthHandler(RedisStateService redisStateService, ChannelRegistry registry) {
+  public WebSocketAuthHandler(RedisStateService redisStateService, ChannelRegistry registry, String path) {
     this.redisStateService = redisStateService;
     this.registry = registry;
+    this.path = path;
   }
 
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
     QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
+    if (!path.equals(decoder.path())) {
+      DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
+      response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+      ctx.writeAndFlush(response);
+      ctx.close();
+      return;
+    }
     List<String> tokens = decoder.parameters().get("token");
     String token = tokens == null || tokens.isEmpty() ? "" : tokens.get(0);
     Long userId = redisStateService.getSessionUser(token);
@@ -38,6 +47,7 @@ public class WebSocketAuthHandler extends SimpleChannelInboundHandler<FullHttpRe
     }
     registry.add(userId, ctx.channel());
     redisStateService.markOnline(userId);
+    request.setUri(path);
     ctx.fireChannelRead(ReferenceCountUtil.retain(request));
   }
 
@@ -50,14 +60,16 @@ public class WebSocketAuthHandler extends SimpleChannelInboundHandler<FullHttpRe
   public static class Factory {
     private final RedisStateService redisStateService;
     private final ChannelRegistry registry;
+    private final com.flowlink.config.FlowLinkProperties properties;
 
-    public Factory(RedisStateService redisStateService, ChannelRegistry registry) {
+    public Factory(RedisStateService redisStateService, ChannelRegistry registry, com.flowlink.config.FlowLinkProperties properties) {
       this.redisStateService = redisStateService;
       this.registry = registry;
+      this.properties = properties;
     }
 
     public WebSocketAuthHandler create() {
-      return new WebSocketAuthHandler(redisStateService, registry);
+      return new WebSocketAuthHandler(redisStateService, registry, properties.getNetty().getPath());
     }
   }
 }

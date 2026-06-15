@@ -1,13 +1,40 @@
 <script setup>
-import { MessageCircleMore, UsersRound } from "@lucide/vue";
+import { computed, reactive, ref } from "vue";
+import { Check, MessageCircleMore, Search, UserPlus, UsersRound, X } from "@lucide/vue";
 import { avatarText, entitySubtitle, entityTitle } from "../utils/display";
 
-defineProps({
+const props = defineProps({
   contacts: { type: Array, default: () => [] },
-  groups: { type: Array, default: () => [] }
+  groups: { type: Array, default: () => [] },
+  requests: { type: Array, default: () => [] },
+  searchResults: { type: Array, default: () => [] }
 });
 
-defineEmits(["select"]);
+const emit = defineEmits(["select", "search-users", "request-friend", "respond-request", "create-group"]);
+const keyword = ref("");
+const friendMessage = ref("你好，希望添加你为好友");
+const groupForm = reactive({ name: "", notice: "", memberIds: [] });
+
+const pendingRequests = computed(() => props.requests.filter((item) => Number(item.status) === 0));
+const groupMembers = computed(() => props.contacts.filter((item) => groupForm.memberIds.includes(item.id)));
+
+function toggleMember(id) {
+  groupForm.memberIds = groupForm.memberIds.includes(id)
+    ? groupForm.memberIds.filter((item) => item !== id)
+    : [...groupForm.memberIds, id];
+}
+
+function createGroup() {
+  if (!groupForm.name.trim()) return;
+  emit("create-group", {
+    name: groupForm.name.trim(),
+    notice: groupForm.notice.trim(),
+    memberIds: groupForm.memberIds
+  });
+  groupForm.name = "";
+  groupForm.notice = "";
+  groupForm.memberIds = [];
+}
 </script>
 
 <template>
@@ -16,28 +43,79 @@ defineEmits(["select"]);
       <div class="avatar large">通</div>
       <div>
         <h2>通讯录</h2>
-        <p>群聊和联系人集中管理，点击任意卡片可进入对应会话。</p>
+        <p>管理联系人、好友申请和群聊，所有操作都会同步到后端。</p>
       </div>
     </header>
 
-    <div class="directory-grid">
-      <section>
+    <div class="directory-workbench">
+      <section class="directory-main">
         <div class="section-title"><UsersRound /><strong>群聊</strong><span>{{ groups.length }}</span></div>
         <article v-for="group in groups" :key="group.id" class="directory-card" @click="$emit('select', 'group', group.id)">
           <div class="avatar group">{{ avatarText(group) }}</div>
           <div><strong>{{ entityTitle(group) }}</strong><span>{{ entitySubtitle(group) }}</span></div>
           <MessageCircleMore />
         </article>
-      </section>
 
-      <section>
-        <div class="section-title"><UsersRound /><strong>联系人</strong><span>{{ contacts.length }}</span></div>
+        <div class="section-title spaced"><UsersRound /><strong>联系人</strong><span>{{ contacts.length }}</span></div>
         <article v-for="contact in contacts" :key="contact.id" class="directory-card" @click="$emit('select', 'private', contact.id)">
           <div class="avatar">{{ avatarText(contact) }}</div>
           <div><strong>{{ entityTitle(contact) }}</strong><span>{{ entitySubtitle(contact) }}</span></div>
           <MessageCircleMore />
         </article>
       </section>
+
+      <aside class="directory-tools">
+        <section class="tool-panel">
+          <h3>添加好友</h3>
+          <label class="search-box compact">
+            <Search />
+            <input v-model="keyword" placeholder="搜索用户名或昵称" @input="$emit('search-users', keyword)" />
+          </label>
+          <textarea v-model="friendMessage" placeholder="申请说明"></textarea>
+          <div class="result-list">
+            <article v-for="user in searchResults" :key="user.id" class="mini-user">
+              <div class="avatar">{{ avatarText(user) }}</div>
+              <div><strong>{{ entityTitle(user) }}</strong><span>{{ user.department || user.username }}</span></div>
+              <button v-if="!user.isFriend && !user.requestPending" type="button" @click="$emit('request-friend', user.id, friendMessage)">
+                <UserPlus />添加
+              </button>
+              <small v-else>{{ user.isFriend ? "已是好友" : "等待处理" }}</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="tool-panel">
+          <h3>好友申请</h3>
+          <article v-for="request in pendingRequests" :key="request.id" class="request-row">
+            <div>
+              <strong>用户 {{ request.senderId }}</strong>
+              <span>{{ request.message }}</span>
+            </div>
+            <button title="通过" type="button" @click="$emit('respond-request', request.id, 'accept')"><Check /></button>
+            <button title="拒绝" type="button" @click="$emit('respond-request', request.id, 'reject')"><X /></button>
+          </article>
+          <p v-if="!pendingRequests.length" class="muted-text">暂无待处理申请</p>
+        </section>
+
+        <section class="tool-panel">
+          <h3>创建群聊</h3>
+          <input v-model="groupForm.name" placeholder="群聊名称" />
+          <input v-model="groupForm.notice" placeholder="群公告，可选" />
+          <div class="member-picker">
+            <button
+              v-for="contact in contacts"
+              :key="contact.id"
+              type="button"
+              :class="{ active: groupForm.memberIds.includes(contact.id) }"
+              @click="toggleMember(contact.id)"
+            >
+              {{ entityTitle(contact) }}
+            </button>
+          </div>
+          <p class="muted-text">已选择 {{ groupMembers.length }} 位联系人</p>
+          <button class="primary-action" type="button" @click="createGroup">创建群聊</button>
+        </section>
+      </aside>
     </div>
   </section>
 </template>

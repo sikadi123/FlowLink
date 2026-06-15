@@ -50,7 +50,7 @@ public class GroupController {
   @PatchMapping("/{id}")
   public ApiResponse<ChatGroup> update(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id,
+      @PathVariable("id") Long id,
       @RequestBody Map<String, Object> body
   ) {
     User user = authService.requireUser(authorization);
@@ -66,7 +66,7 @@ public class GroupController {
   @PostMapping("/{id}/mutes")
   public ApiResponse<Boolean> mute(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id,
+      @PathVariable("id") Long id,
       @RequestBody Map<String, Object> body
   ) {
     User user = authService.requireUser(authorization);
@@ -79,7 +79,7 @@ public class GroupController {
   @PostMapping("/{id}/admins")
   public ApiResponse<Boolean> admin(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id,
+      @PathVariable("id") Long id,
       @RequestBody Map<String, Object> body
   ) {
     User user = authService.requireUser(authorization);
@@ -92,7 +92,7 @@ public class GroupController {
   @PostMapping("/{id}/owner")
   public ApiResponse<Boolean> owner(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id,
+      @PathVariable("id") Long id,
       @RequestBody Map<String, Object> body
   ) {
     User user = authService.requireUser(authorization);
@@ -104,7 +104,7 @@ public class GroupController {
   @PostMapping("/{id}/members")
   public ApiResponse<Boolean> invite(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id,
+      @PathVariable("id") Long id,
       @RequestBody Map<String, Object> body
   ) {
     User user = authService.requireUser(authorization);
@@ -118,7 +118,7 @@ public class GroupController {
   @GetMapping("/{id}/members")
   public ApiResponse<List<GroupMember>> members(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id
+      @PathVariable("id") Long id
   ) {
     User user = authService.requireUser(authorization);
     groupService.requireMember(id, user.getId());
@@ -128,8 +128,8 @@ public class GroupController {
   @DeleteMapping("/{id}/members/{memberId}")
   public ApiResponse<Boolean> removeMember(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id,
-      @PathVariable Long memberId
+      @PathVariable("id") Long id,
+      @PathVariable("memberId") Long memberId
   ) {
     User user = authService.requireUser(authorization);
     groupService.removeMember(user.getId(), id, memberId);
@@ -139,7 +139,7 @@ public class GroupController {
   @PostMapping("/{id}/leave")
   public ApiResponse<Boolean> leave(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id
+      @PathVariable("id") Long id
   ) {
     User user = authService.requireUser(authorization);
     groupService.leave(user.getId(), id);
@@ -149,7 +149,7 @@ public class GroupController {
   @DeleteMapping("/{id}")
   public ApiResponse<Boolean> dissolve(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @PathVariable Long id
+      @PathVariable("id") Long id
   ) {
     User user = authService.requireUser(authorization);
     groupService.dissolve(user.getId(), id);

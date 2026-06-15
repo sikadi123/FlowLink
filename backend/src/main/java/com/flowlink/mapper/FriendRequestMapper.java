@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface FriendRequestMapper {
   @Select("select * from friend_request where id = #{id}")
-  FriendRequest findById(Long id);
+  FriendRequest findById(@Param("id") Long id);
 
   @Select("""
       select * from friend_request
@@ -20,7 +20,7 @@ public interface FriendRequestMapper {
       order by request_time desc
       limit 50
       """)
-  List<FriendRequest> findByUser(Long userId);
+  List<FriendRequest> findByUser(@Param("userId") Long userId);
 
   @Select("""
       select count(*) from friend_request

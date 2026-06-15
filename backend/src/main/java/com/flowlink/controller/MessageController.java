@@ -33,11 +33,13 @@ public class MessageController {
   @GetMapping("/history")
   public ApiResponse<List<Message>> history(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @RequestParam String type,
-      @RequestParam Long targetId
+      @RequestParam("type") String type,
+      @RequestParam("targetId") Long targetId,
+      @RequestParam(value = "beforeId", required = false) Long beforeId,
+      @RequestParam(value = "limit", required = false) Integer limit
   ) {
     User user = authService.requireUser(authorization);
-    return ApiResponse.ok(messageService.history(user.getId(), type, targetId));
+    return ApiResponse.ok(messageService.history(user.getId(), type, targetId, beforeId, limit));
   }
 
   @PostMapping("/send")
@@ -53,10 +55,9 @@ public class MessageController {
   }
 
   @PostMapping("/{id}/recall")
-  public ApiResponse<Boolean> recall(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable Long id) {
+  public ApiResponse<Message> recall(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable("id") Long id) {
     User user = authService.requireUser(authorization);
-    messageService.recall(user.getId(), id);
-    return ApiResponse.ok(true);
+    return ApiResponse.ok(messageService.recall(user.getId(), id, registry));
   }
 
   private Integer messageTypeOf(String value) {

@@ -38,7 +38,7 @@ public class UserController {
   @GetMapping("/api/users")
   public ApiResponse<List<Map<String, Object>>> users(
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @RequestParam(defaultValue = "") String q
+      @RequestParam(value = "q", defaultValue = "") String q
   ) {
     User user = authService.requireUser(authorization);
     return ApiResponse.ok(socialService.searchUsers(user, q));

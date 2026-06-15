@@ -84,6 +84,25 @@ public class SocialService {
     friendshipMapper.delete(friendId, current.getId());
   }
 
+  @Transactional
+  public void blockFriend(User current, Long friendId) {
+    if (current.getId().equals(friendId)) throw new BusinessException(400, "不能拉黑自己");
+    User target = userMapper.findById(friendId);
+    if (target == null) throw new BusinessException(404, "用户不存在");
+    if (friendshipMapper.countAny(current.getId(), friendId) > 0) {
+      friendshipMapper.block(current.getId(), friendId);
+    } else {
+      friendshipMapper.insert(current.getId(), friendId);
+      friendshipMapper.block(current.getId(), friendId);
+    }
+    friendshipMapper.delete(friendId, current.getId());
+  }
+
+  @Transactional
+  public void unblockFriend(User current, Long friendId) {
+    friendshipMapper.delete(current.getId(), friendId);
+  }
+
   private void saveFriendship(Long userId, Long friendId) {
     if (friendshipMapper.countAny(userId, friendId) > 0) {
       friendshipMapper.restore(userId, friendId);

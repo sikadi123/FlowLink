@@ -14,6 +14,11 @@ public class Message {
   private LocalDateTime sendTime;
   private Boolean recalled;
   private LocalDateTime recallTime;
+  private Long fileRecordId;
+  private String fileName;
+  private Long fileSize;
+  private String fileType;
+  private String fileUrl;
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }
@@ -37,4 +42,14 @@ public class Message {
   public void setRecalled(Boolean recalled) { this.recalled = recalled; }
   public LocalDateTime getRecallTime() { return recallTime; }
   public void setRecallTime(LocalDateTime recallTime) { this.recallTime = recallTime; }
+  public Long getFileRecordId() { return fileRecordId; }
+  public void setFileRecordId(Long fileRecordId) { this.fileRecordId = fileRecordId; }
+  public String getFileName() { return fileName; }
+  public void setFileName(String fileName) { this.fileName = fileName; }
+  public Long getFileSize() { return fileSize; }
+  public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+  public String getFileType() { return fileType; }
+  public void setFileType(String fileType) { this.fileType = fileType; }
+  public String getFileUrl() { return fileUrl; }
+  public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
 }

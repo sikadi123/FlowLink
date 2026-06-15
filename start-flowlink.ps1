@@ -40,6 +40,21 @@ function Wait-Port([int] $port, [int] $seconds) {
   return $false
 }
 
+function Wait-Http([string] $url, [int] $seconds) {
+  for ($attempt = 0; $attempt -lt $seconds; $attempt++) {
+    try {
+      Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2 | Out-Null
+      return $true
+    } catch {
+      if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) {
+        return $true
+      }
+    }
+    Start-Sleep -Seconds 1
+  }
+  return $false
+}
+
 try {
   Set-Location $root
   $docker = Find-Docker
@@ -71,15 +86,16 @@ try {
   $backendCommand = "chcp 65001 >nul && cd /d `"$root\backend`" && mvnw.cmd spring-boot:run"
   Start-Process -FilePath "cmd.exe" -ArgumentList "/k", $backendCommand -WindowStyle Normal
 
+  $backendReady = Wait-Http "http://localhost:8080/api/bootstrap" 90
+  if (-not $backendReady) {
+    throw "Backend did not become ready on http://localhost:8080. Check the backend window."
+  }
+
   Write-Host "[4/4] Starting Vue frontend..."
   $frontendCommand = "chcp 65001 >nul && cd /d `"$root\frontend`" && npm.cmd run dev"
   Start-Process -FilePath "cmd.exe" -ArgumentList "/k", $frontendCommand -WindowStyle Normal
 
-  $backendReady = Wait-Port 8080 60
   $frontendReady = Wait-Port 5173 60
-  if (-not $backendReady) {
-    throw "Backend did not start on port 8080. Check the backend window."
-  }
   if (-not $frontendReady) {
     throw "Frontend did not start on port 5173. Check the frontend window."
   }

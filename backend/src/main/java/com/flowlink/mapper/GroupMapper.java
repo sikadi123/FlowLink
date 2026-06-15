@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface GroupMapper {
   @Select("select * from chat_group where id = #{id} and status = 1")
-  ChatGroup findById(Long id);
+  ChatGroup findById(@Param("id") Long id);
 
   @Select("""
       select g.* from chat_group g
@@ -20,7 +20,7 @@ public interface GroupMapper {
       where gm.user_id = #{userId} and gm.status = 1 and g.status = 1
       order by g.updated_at desc
       """)
-  List<ChatGroup> findByUserId(Long userId);
+  List<ChatGroup> findByUserId(@Param("userId") Long userId);
 
   @Insert("""
       insert into chat_group(group_name, owner_id, avatar_url, notice, description, mute_all, status)
@@ -40,5 +40,5 @@ public interface GroupMapper {
   void transferOwner(@Param("groupId") Long groupId, @Param("ownerId") Long ownerId);
 
   @Update("update chat_group set status = 0 where id = #{groupId}")
-  void dissolve(Long groupId);
+  void dissolve(@Param("groupId") Long groupId);
 }

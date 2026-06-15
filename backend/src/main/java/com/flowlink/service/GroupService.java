@@ -3,8 +3,10 @@ package com.flowlink.service;
 import com.flowlink.common.BusinessException;
 import com.flowlink.domain.ChatGroup;
 import com.flowlink.domain.GroupMember;
+import com.flowlink.domain.User;
 import com.flowlink.mapper.GroupMapper;
 import com.flowlink.mapper.GroupMemberMapper;
+import com.flowlink.mapper.UserMapper;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +18,14 @@ public class GroupService {
   public static final int ROLE_OWNER = 2;
   private final GroupMapper groupMapper;
   private final GroupMemberMapper memberMapper;
+  private final NotificationService notificationService;
+  private final UserMapper userMapper;
 
-  public GroupService(GroupMapper groupMapper, GroupMemberMapper memberMapper) {
+  public GroupService(GroupMapper groupMapper, GroupMemberMapper memberMapper, NotificationService notificationService, UserMapper userMapper) {
     this.groupMapper = groupMapper;
     this.memberMapper = memberMapper;
+    this.notificationService = notificationService;
+    this.userMapper = userMapper;
   }
 
   public List<ChatGroup> myGroups(Long userId) {
@@ -63,6 +69,7 @@ public class GroupService {
     group.setDescription(patch.getDescription());
     group.setMuteAll(Boolean.TRUE.equals(patch.getMuteAll()));
     groupMapper.update(group);
+    notifyGroupMembers(groupId, operatorId, "group_updated", actorName(operatorId) + " 更新了群聊「" + group.getGroupName() + "」的资料");
     return groupMapper.findById(groupId);
   }
 
@@ -76,6 +83,8 @@ public class GroupService {
     target.setMuted(muted);
     target.setMutedBy(operatorId);
     memberMapper.updateMute(target);
+    notificationService.create(memberId, muted ? "group_muted" : "group_unmuted",
+        actorName(operatorId) + (muted ? " 将你禁言于群聊「" : " 解除了你在群聊「") + requireGroup(groupId).getGroupName() + "」中的禁言");
   }
 
   @Transactional
@@ -84,6 +93,8 @@ public class GroupService {
     if (operator.getRole() != ROLE_OWNER) throw new BusinessException(403, "只有群主可以设置管理员");
     requireMember(groupId, memberId);
     memberMapper.updateRole(groupId, memberId, admin ? ROLE_ADMIN : ROLE_MEMBER);
+    notificationService.create(memberId, admin ? "group_admin_set" : "group_admin_unset",
+        actorName(ownerId) + (admin ? " 将你设为群聊「" : " 取消了你在群聊「") + requireGroup(groupId).getGroupName() + (admin ? "」的管理员" : "」的管理员身份"));
   }
 
   @Transactional
@@ -94,12 +105,17 @@ public class GroupService {
     memberMapper.updateRole(groupId, ownerId, ROLE_ADMIN);
     memberMapper.updateRole(groupId, memberId, ROLE_OWNER);
     groupMapper.transferOwner(groupId, memberId);
+    notificationService.create(memberId, "group_owner_transfer", actorName(ownerId) + " 将群聊「" + requireGroup(groupId).getGroupName() + "」转让给你");
   }
 
   @Transactional
   public void invite(Long operatorId, Long groupId, List<Long> memberIds) {
     requireManager(groupId, operatorId);
-    for (Long memberId : memberIds) addMember(groupId, memberId, ROLE_MEMBER);
+    ChatGroup group = requireGroup(groupId);
+    for (Long memberId : memberIds) {
+      addMember(groupId, memberId, ROLE_MEMBER);
+      notificationService.create(memberId, "group_invited", actorName(operatorId) + " 邀请你加入群聊「" + group.getGroupName() + "」");
+    }
   }
 
   @Transactional
@@ -110,6 +126,7 @@ public class GroupService {
     if (target.getRole() == ROLE_OWNER) throw new BusinessException(403, "不能移除群主");
     if (target.getRole() == ROLE_ADMIN && operator.getRole() != ROLE_OWNER) throw new BusinessException(403, "只有群主可以移除管理员");
     memberMapper.markLeft(groupId, memberId);
+    notificationService.create(memberId, "group_removed", actorName(operatorId) + " 将你移出群聊「" + requireGroup(groupId).getGroupName() + "」");
   }
 
   @Transactional
@@ -146,5 +163,17 @@ public class GroupService {
 
   private void requireManager(Long groupId, Long userId) {
     if (!canManage(groupId, userId)) throw new BusinessException(403, "需要群主或管理员权限");
+  }
+
+  private void notifyGroupMembers(Long groupId, Long exceptUserId, String type, String content) {
+    for (GroupMember member : memberMapper.findActiveMembers(groupId)) {
+      if (!member.getUserId().equals(exceptUserId)) notificationService.create(member.getUserId(), type, content);
+    }
+  }
+
+  private String actorName(Long userId) {
+    User user = userMapper.findById(userId);
+    if (user == null) return "系统";
+    return user.getDisplayName() == null || user.getDisplayName().isBlank() ? user.getUsername() : user.getDisplayName();
   }
 }

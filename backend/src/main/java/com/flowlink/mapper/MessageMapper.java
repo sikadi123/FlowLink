@@ -19,20 +19,86 @@ public interface MessageMapper {
   void insert(Message message);
 
   @Select("""
-      select * from message
-      where conversation_type = 1
-        and ((sender_id = #{userId} and receiver_id = #{targetId}) or (sender_id = #{targetId} and receiver_id = #{userId}))
-      order by send_time asc
+      <script>
+      select
+        m.id,
+        m.conversation_type,
+        m.sender_id,
+        m.receiver_id,
+        m.group_id,
+        m.content,
+        m.message_type,
+        m.client_id,
+        m.send_time,
+        m.is_recalled as recalled,
+        m.recall_time,
+        f.id as file_record_id,
+        f.file_name,
+        f.file_size,
+        f.file_type,
+        f.access_url as file_url
+      from message m
+      left join file_record f on f.message_id = m.id
+      where m.conversation_type = 1
+        and ((m.sender_id = #{userId} and m.receiver_id = #{targetId}) or (m.sender_id = #{targetId} and m.receiver_id = #{userId}))
+        <if test="beforeId != null">
+          and m.id &lt; #{beforeId}
+        </if>
+      order by m.send_time asc
       limit #{limit}
+      </script>
       """)
-  List<Message> privateHistory(@Param("userId") Long userId, @Param("targetId") Long targetId, @Param("limit") int limit);
+  List<Message> privateHistory(@Param("userId") Long userId, @Param("targetId") Long targetId, @Param("beforeId") Long beforeId, @Param("limit") int limit);
 
-  @Select("select * from message where conversation_type = 2 and group_id = #{groupId} order by send_time asc limit #{limit}")
-  List<Message> groupHistory(@Param("groupId") Long groupId, @Param("limit") int limit);
+  @Select("""
+      <script>
+      select
+        m.id,
+        m.conversation_type,
+        m.sender_id,
+        m.receiver_id,
+        m.group_id,
+        m.content,
+        m.message_type,
+        m.client_id,
+        m.send_time,
+        m.is_recalled as recalled,
+        m.recall_time,
+        f.id as file_record_id,
+        f.file_name,
+        f.file_size,
+        f.file_type,
+        f.access_url as file_url
+      from message m
+      left join file_record f on f.message_id = m.id
+      where m.conversation_type = 2 and m.group_id = #{groupId}
+      <if test="beforeId != null">
+        and m.id &lt; #{beforeId}
+      </if>
+      order by m.send_time asc
+      limit #{limit}
+      </script>
+      """)
+  List<Message> groupHistory(@Param("groupId") Long groupId, @Param("beforeId") Long beforeId, @Param("limit") int limit);
 
-  @Select("select * from message where id = #{id}")
-  Message findById(Long id);
+  @Select("""
+      select
+        id,
+        conversation_type,
+        sender_id,
+        receiver_id,
+        group_id,
+        content,
+        message_type,
+        client_id,
+        send_time,
+        is_recalled as recalled,
+        recall_time
+      from message
+      where id = #{id}
+      """)
+  Message findById(@Param("id") Long id);
 
   @Update("update message set is_recalled = 1, recall_time = now() where id = #{id}")
-  void recall(Long id);
+  void recall(@Param("id") Long id);
 }
