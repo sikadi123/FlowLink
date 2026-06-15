@@ -28,3 +28,7 @@ flowlink:
     secret-key: minioadmin
     bucket: flowlink
     public-base-url: http://localhost:9000/flowlink
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true

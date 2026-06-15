@@ -27,11 +27,11 @@ const completion = computed(() => {
   return Math.round((filled / keys.length) * 100);
 });
 
+const previewUser = computed(() => ({ ...props.me, ...props.form }));
+
 function applyPreset(value) {
   props.form.avatarUrl = value;
 }
-
-const previewUser = computed(() => ({ ...props.me, ...props.form }));
 
 async function chooseAvatar(event) {
   const file = event.target.files?.[0];
@@ -58,7 +58,7 @@ async function chooseAvatar(event) {
     <header class="page-header profile-header">
       <div class="avatar large" :style="avatarStyle(previewUser)">
         <img v-if="avatarImage(previewUser)" :src="avatarImage(previewUser)" alt="头像" />
-        <span v-else>{{ avatarText(form.displayName ? form : me) }}</span>
+        <span v-else>{{ avatarText(previewUser) }}</span>
       </div>
       <div>
         <h2>个人中心</h2>
@@ -73,10 +73,10 @@ async function chooseAvatar(event) {
       <aside class="profile-card">
         <div class="profile-avatar-preview" :style="avatarStyle(previewUser)">
           <img v-if="avatarImage(previewUser)" :src="avatarImage(previewUser)" alt="头像预览" />
-          <span v-else>{{ avatarText(form.displayName ? form : me) }}</span>
+          <span v-else>{{ avatarText(previewUser) }}</span>
         </div>
-        <h3>{{ form.displayName || me.displayName }}</h3>
-        <p>{{ form.statusMessage || "设置一句状态，让联系人更快了解你。" }}</p>
+        <h3>{{ previewUser.displayName || previewUser.username }}</h3>
+        <p>{{ previewUser.statusMessage || "设置一句状态，让联系人更快了解你。" }}</p>
 
         <div class="profile-completion">
           <div><span>资料完整度</span><strong>{{ completion }}%</strong></div>
@@ -84,10 +84,10 @@ async function chooseAvatar(event) {
         </div>
 
         <dl class="profile-facts">
-          <div><BriefcaseBusiness /><span>{{ form.role || "未填写职位" }}</span></div>
-          <div><Mail /><span>{{ form.email || "未填写邮箱" }}</span></div>
-          <div><Phone /><span>{{ form.phone || "未填写电话" }}</span></div>
-          <div><MapPin /><span>{{ form.location || "未填写地区" }}</span></div>
+          <div><BriefcaseBusiness /><span>{{ previewUser.role || "未填写职位" }}</span></div>
+          <div><Mail /><span>{{ previewUser.email || "未填写邮箱" }}</span></div>
+          <div><Phone /><span>{{ previewUser.phone || "未填写电话" }}</span></div>
+          <div><MapPin /><span>{{ previewUser.location || "未填写地区" }}</span></div>
         </dl>
       </aside>
 
@@ -108,7 +108,7 @@ async function chooseAvatar(event) {
         <section class="profile-section">
           <div class="profile-section-title">
             <ImagePlus />
-            <div><strong>头像设置</strong><span>支持图片地址，也可以使用预设头像色板</span></div>
+            <div><strong>头像设置</strong><span>支持本地上传、图片地址和预设色板</span></div>
           </div>
           <label class="avatar-url-field">
             <span>头像地址</span>

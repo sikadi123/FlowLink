@@ -29,4 +29,12 @@ public class NotificationService {
   public void markAllRead(Long receiverId) {
     notificationMapper.markAllRead(receiverId);
   }
+
+  public void deleteOne(Long receiverId, Long notificationId) {
+    notificationMapper.deleteOne(receiverId, notificationId);
+  }
+
+  public void deleteAll(Long receiverId) {
+    notificationMapper.deleteAll(receiverId);
+  }
 }

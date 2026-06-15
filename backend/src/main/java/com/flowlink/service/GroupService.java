@@ -52,6 +52,10 @@ public class GroupService {
   @Transactional
   public ChatGroup create(Long ownerId, ChatGroup group, List<Long> memberIds) {
     group.setOwnerId(ownerId);
+    group.setGroupName(defaultText(group.getGroupName(), "新的群聊"));
+    group.setNotice(defaultText(group.getNotice(), ""));
+    group.setDescription(defaultText(group.getDescription(), ""));
+    group.setAvatarUrl(defaultText(group.getAvatarUrl(), ""));
     group.setMuteAll(Boolean.TRUE.equals(group.getMuteAll()));
     groupMapper.insert(group);
     addMember(group.getId(), ownerId, ROLE_OWNER);
@@ -63,11 +67,11 @@ public class GroupService {
   public ChatGroup update(Long operatorId, Long groupId, ChatGroup patch) {
     requireManager(groupId, operatorId);
     ChatGroup group = requireGroup(groupId);
-    group.setGroupName(patch.getGroupName());
-    group.setAvatarUrl(patch.getAvatarUrl());
-    group.setNotice(patch.getNotice());
-    group.setDescription(patch.getDescription());
-    group.setMuteAll(Boolean.TRUE.equals(patch.getMuteAll()));
+    group.setGroupName(defaultText(patch.getGroupName(), group.getGroupName()));
+    group.setAvatarUrl(defaultText(patch.getAvatarUrl(), group.getAvatarUrl()));
+    group.setNotice(defaultText(patch.getNotice(), group.getNotice()));
+    group.setDescription(defaultText(patch.getDescription(), group.getDescription()));
+    group.setMuteAll(patch.getMuteAll() == null ? Boolean.TRUE.equals(group.getMuteAll()) : Boolean.TRUE.equals(patch.getMuteAll()));
     groupMapper.update(group);
     notifyGroupMembers(groupId, operatorId, "group_updated", actorName(operatorId) + " 更新了群聊「" + group.getGroupName() + "」的资料");
     return groupMapper.findById(groupId);
@@ -83,8 +87,9 @@ public class GroupService {
     target.setMuted(muted);
     target.setMutedBy(operatorId);
     memberMapper.updateMute(target);
+    String groupName = requireGroup(groupId).getGroupName();
     notificationService.create(memberId, muted ? "group_muted" : "group_unmuted",
-        actorName(operatorId) + (muted ? " 将你禁言于群聊「" : " 解除了你在群聊「") + requireGroup(groupId).getGroupName() + "」中的禁言");
+        actorName(operatorId) + (muted ? " 将你禁言于群聊「" : " 解除了你在群聊「") + groupName + "」中的禁言");
   }
 
   @Transactional
@@ -93,8 +98,9 @@ public class GroupService {
     if (operator.getRole() != ROLE_OWNER) throw new BusinessException(403, "只有群主可以设置管理员");
     requireMember(groupId, memberId);
     memberMapper.updateRole(groupId, memberId, admin ? ROLE_ADMIN : ROLE_MEMBER);
+    String groupName = requireGroup(groupId).getGroupName();
     notificationService.create(memberId, admin ? "group_admin_set" : "group_admin_unset",
-        actorName(ownerId) + (admin ? " 将你设为群聊「" : " 取消了你在群聊「") + requireGroup(groupId).getGroupName() + (admin ? "」的管理员" : "」的管理员身份"));
+        actorName(ownerId) + (admin ? " 将你设为群聊「" : " 取消了你在群聊「") + groupName + (admin ? "」的管理员" : "」的管理员身份"));
   }
 
   @Transactional
@@ -174,6 +180,10 @@ public class GroupService {
   private String actorName(Long userId) {
     User user = userMapper.findById(userId);
     if (user == null) return "系统";
-    return user.getDisplayName() == null || user.getDisplayName().isBlank() ? user.getUsername() : user.getDisplayName();
+    return defaultText(user.getDisplayName(), user.getUsername());
+  }
+
+  private String defaultText(String value, String fallback) {
+    return value == null || value.trim().isEmpty() ? fallback : value.trim();
   }
 }

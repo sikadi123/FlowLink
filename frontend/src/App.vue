@@ -16,6 +16,14 @@ const userSearchResults = ref([]);
 onMounted(async () => {
   if (!store.token) return;
   await store.restoreSession();
+  const initialTab = new URLSearchParams(window.location.search).get("tab");
+  if (["chats", "contacts", "notifications", "settings"].includes(initialTab)) {
+    if (initialTab === "settings") {
+      openProfile();
+    } else {
+      await store.setTab(initialTab);
+    }
+  }
 });
 
 function openProfile() {
@@ -73,6 +81,8 @@ async function searchUsers(keyword) {
         v-else-if="store.activeTab === 'notifications'"
         :notifications="store.notifications"
         @mark-read="store.markNotificationsRead"
+        @delete-one="store.deleteNotification"
+        @delete-all="store.deleteAllNotifications"
       />
 
       <DirectoryPanel
@@ -101,6 +111,7 @@ async function searchUsers(keyword) {
         @send-reply="store.sendReply"
         @send-file="store.uploadAndSend"
         @recall-message="store.recallMessage"
+        @delete-message="store.deleteMessage"
         @load-earlier="store.loadEarlierMessages"
         @update-group="store.updateGroup"
         @invite-group-members="store.inviteGroupMembers"

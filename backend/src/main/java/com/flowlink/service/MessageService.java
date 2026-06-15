@@ -2,11 +2,12 @@ package com.flowlink.service;
 
 import com.flowlink.common.BusinessException;
 import com.flowlink.domain.ChatGroup;
+import com.flowlink.domain.FileRecord;
 import com.flowlink.domain.GroupMember;
 import com.flowlink.domain.Message;
+import com.flowlink.mapper.FileRecordMapper;
 import com.flowlink.mapper.FriendshipMapper;
 import com.flowlink.mapper.GroupMemberMapper;
-import com.flowlink.mapper.FileRecordMapper;
 import com.flowlink.mapper.MessageMapper;
 import com.flowlink.realtime.ChannelRegistry;
 import java.util.List;
@@ -66,7 +67,7 @@ public class MessageService {
     }
     messageMapper.insert(message);
     if (fileRecordId != null) {
-      com.flowlink.domain.FileRecord fileRecord = fileRecordMapper.findById(fileRecordId);
+      FileRecord fileRecord = fileRecordMapper.findById(fileRecordId);
       if (fileRecord == null) throw new BusinessException(404, "文件不存在");
       fileRecord.setMessageId(message.getId());
       fileRecordMapper.bindMessage(fileRecord);
@@ -76,18 +77,7 @@ public class MessageService {
       message.setFileType(fileRecord.getFileType());
       message.setFileUrl(fileRecord.getAccessUrl());
     }
-    if (registry != null) {
-      if ("group".equals(type)) {
-        for (GroupMember member : memberMapper.findActiveMembers(targetId)) {
-          if (!member.getUserId().equals(senderId)) redisStateService.increaseUnread(member.getUserId(), "group:" + targetId);
-          registry.send(member.getUserId(), "new_message", Map.of("message", message));
-        }
-      } else {
-        redisStateService.increaseUnread(targetId, "private:" + senderId);
-        registry.send(targetId, "new_message", Map.of("message", message));
-        registry.send(senderId, "new_message", Map.of("message", message));
-      }
-    }
+    pushNewMessage(senderId, type, targetId, message, registry);
     return message;
   }
 
@@ -108,6 +98,38 @@ public class MessageService {
     if (Boolean.TRUE.equals(message.getRecalled())) return message;
     messageMapper.recall(messageId);
     message.setRecalled(true);
+    pushMessageEvent("message_recalled", message, registry);
+    return message;
+  }
+
+  @Transactional
+  public Message delete(Long userId, Long messageId, ChannelRegistry registry) {
+    Message message = messageMapper.findById(messageId);
+    if (message == null) throw new BusinessException(404, "消息不存在");
+    assertCanDelete(userId, message);
+    messageMapper.unbindFiles(messageId);
+    messageMapper.deleteReceipts(messageId);
+    messageMapper.deleteById(messageId);
+    pushMessageEvent("message_deleted", message, registry);
+    return message;
+  }
+
+  private void pushNewMessage(Long senderId, String type, Long targetId, Message message, ChannelRegistry registry) {
+    if (registry == null) return;
+    if ("group".equals(type)) {
+      for (GroupMember member : memberMapper.findActiveMembers(targetId)) {
+        if (!member.getUserId().equals(senderId)) redisStateService.increaseUnread(member.getUserId(), "group:" + targetId);
+        registry.send(member.getUserId(), "new_message", Map.of("message", message));
+      }
+    } else {
+      redisStateService.increaseUnread(targetId, "private:" + senderId);
+      registry.send(targetId, "new_message", Map.of("message", message));
+      registry.send(senderId, "new_message", Map.of("message", message));
+    }
+  }
+
+  private void pushMessageEvent(String action, Message message, ChannelRegistry registry) {
+    if (registry == null) return;
     Map<String, Object> payload = Map.of(
         "messageId", message.getId(),
         "conversationType", message.getConversationType(),
@@ -115,17 +137,14 @@ public class MessageService {
         "receiverId", message.getReceiverId() == null ? "" : message.getReceiverId(),
         "groupId", message.getGroupId() == null ? "" : message.getGroupId()
     );
-    if (registry != null) {
-      if (Integer.valueOf(2).equals(message.getConversationType())) {
-        for (GroupMember member : memberMapper.findActiveMembers(message.getGroupId())) {
-          registry.send(member.getUserId(), "message_recalled", payload);
-        }
-      } else {
-        registry.send(message.getSenderId(), "message_recalled", payload);
-        if (message.getReceiverId() != null) registry.send(message.getReceiverId(), "message_recalled", payload);
+    if (Integer.valueOf(2).equals(message.getConversationType())) {
+      for (GroupMember member : memberMapper.findActiveMembers(message.getGroupId())) {
+        registry.send(member.getUserId(), action, payload);
       }
+    } else {
+      registry.send(message.getSenderId(), action, payload);
+      if (message.getReceiverId() != null) registry.send(message.getReceiverId(), action, payload);
     }
-    return message;
   }
 
   private void assertCanSpeak(Long userId, Long groupId) {
@@ -138,6 +157,15 @@ public class MessageService {
 
   private void assertCanPrivateMessage(Long senderId, Long receiverId) {
     if (friendshipMapper.countBlocked(receiverId, senderId) > 0) throw new BusinessException(403, "对方已拒收你的消息");
+  }
+
+  private void assertCanDelete(Long userId, Message message) {
+    if (Integer.valueOf(2).equals(message.getConversationType())) {
+      groupService.requireMember(message.getGroupId(), userId);
+      return;
+    }
+    if (userId.equals(message.getSenderId()) || userId.equals(message.getReceiverId())) return;
+    throw new BusinessException(403, "不能删除不属于你的消息");
   }
 
   private int messageTypeOf(String value) {

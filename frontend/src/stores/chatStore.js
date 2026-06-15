@@ -117,7 +117,7 @@ export const useChatStore = defineStore("chat", {
       this.groups = data.groups || [];
       this.requests = data.requests || [];
       this.notifications = data.notifications || [];
-      if (!this.selected && this.lastSelected) {
+      if (this.activeTab === "chats" && !this.selected && this.lastSelected) {
         const exists = this.lastSelected.type === "group"
           ? this.groups.some((item) => String(item.id) === String(this.lastSelected.id))
           : this.contacts.some((item) => String(item.id) === String(this.lastSelected.id));
@@ -173,6 +173,16 @@ export const useChatStore = defineStore("chat", {
     },
     async refreshNotifications() {
       this.notifications = await request("/api/notifications");
+    },
+    async deleteNotification(notificationId) {
+      await request(`/api/notifications/${notificationId}`, { method: "DELETE" });
+      this.notifications = this.notifications.filter((item) => String(item.id) !== String(notificationId));
+      this.toast("通知已删除");
+    },
+    async deleteAllNotifications() {
+      await request("/api/notifications", { method: "DELETE" });
+      this.notifications = [];
+      this.toast("通知已全部删除");
     },
     async markNotificationsRead() {
       await request("/api/notifications/read-all", { method: "PATCH" });
@@ -408,6 +418,7 @@ export const useChatStore = defineStore("chat", {
           sendTime: new Date().toISOString()
         });
       }
+      if (packet.action === "message_deleted") this.removeMessage(packet.payload.messageId);
       if (packet.action === "message_ack") this.connectionStatus = "online";
       if (packet.action === "message_failed") this.toast(packet.payload.message || "消息发送失败");
       if (packet.action === "friend_request_received") {
@@ -436,6 +447,16 @@ export const useChatStore = defineStore("chat", {
         this.toast(error.message || "撤回失败");
       }
     },
+    async deleteMessage(messageId) {
+      if (!messageId) return;
+      try {
+        await request(`/api/messages/${messageId}`, { method: "DELETE" });
+        this.removeMessage(messageId);
+        this.toast("消息已删除");
+      } catch (error) {
+        this.toast(error.message || "删除失败");
+      }
+    },
     applyRecall(messageId) {
       const message = this.messages.find((item) => String(item.id) === String(messageId));
       if (!message) return;
@@ -446,6 +467,9 @@ export const useChatStore = defineStore("chat", {
       message.fileSize = 0;
       message.fileType = "";
       message.fileUrl = "";
+    },
+    removeMessage(messageId) {
+      this.messages = this.messages.filter((item) => String(item.id) !== String(messageId));
     },
     async sendMessage(content, messageType = 1, fileRecordId = null, metadata = {}) {
       if (!this.selected || !content.trim()) return;
@@ -494,7 +518,11 @@ export const useChatStore = defineStore("chat", {
     },
     async saveProfile(form) {
       this.me = await request("/api/me", { method: "PATCH", body: JSON.stringify(form) });
+      this.activeTab = "settings";
+      this.selected = null;
       await this.bootstrap();
+      this.activeTab = "settings";
+      this.selected = null;
       this.toast("资料已保存");
     },
     clearConversationUnread(type, id) {

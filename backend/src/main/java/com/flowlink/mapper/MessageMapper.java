@@ -2,6 +2,7 @@ package com.flowlink.mapper;
 
 import com.flowlink.domain.Message;
 import java.util.List;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -101,4 +102,13 @@ public interface MessageMapper {
 
   @Update("update message set is_recalled = 1, recall_time = now() where id = #{id}")
   void recall(@Param("id") Long id);
+
+  @Update("update file_record set message_id = null where message_id = #{id}")
+  void unbindFiles(@Param("id") Long id);
+
+  @Delete("delete from message_receipt where message_id = #{id}")
+  void deleteReceipts(@Param("id") Long id);
+
+  @Delete("delete from message where id = #{id}")
+  int deleteById(@Param("id") Long id);
 }

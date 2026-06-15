@@ -12,7 +12,7 @@ const props = defineProps({
   nameOf: { type: Function, default: (id) => `用户 ${id}` }
 });
 
-const emit = defineEmits(["sendText", "sendReply", "sendFile", "recallMessage", "loadEarlier", "updateGroup", "inviteGroupMembers", "removeGroupMember", "setGroupAdmin", "setGroupMute", "transferGroupOwner", "leaveGroup", "dissolveGroup", "deleteFriend", "blockFriend"]);
+const emit = defineEmits(["sendText", "sendReply", "sendFile", "recallMessage", "deleteMessage", "loadEarlier", "updateGroup", "inviteGroupMembers", "removeGroupMember", "setGroupAdmin", "setGroupMute", "transferGroupOwner", "leaveGroup", "dissolveGroup", "deleteFriend", "blockFriend"]);
 const draft = ref("");
 const messageBox = ref(null);
 const messageKeyword = ref("");
@@ -20,6 +20,7 @@ const detailsOpen = ref(true);
 const previewImage = ref("");
 const emojiOpen = ref(false);
 const replyTarget = ref(null);
+const messageMenu = reactive({ open: false, x: 0, y: 0, message: null });
 const groupForm = reactive({ name: "", notice: "", description: "", muteAll: false });
 const inviteIds = ref([]);
 const transferTargetId = ref("");
@@ -94,6 +95,38 @@ function fileTitle(message) {
 
 function canRecall(message) {
   return message.id && !message.recalled && String(message.senderId) === String(props.me.id);
+}
+
+function openMessageMenu(event, message) {
+  if (!message || message.recalled) return;
+  event.preventDefault();
+  messageMenu.open = true;
+  messageMenu.x = Math.min(event.clientX, window.innerWidth - 190);
+  messageMenu.y = Math.min(event.clientY, window.innerHeight - 150);
+  messageMenu.message = message;
+}
+
+function closeMessageMenu() {
+  messageMenu.open = false;
+  messageMenu.message = null;
+}
+
+function replyFromMenu() {
+  if (!messageMenu.message) return;
+  replyTarget.value = messageMenu.message;
+  closeMessageMenu();
+}
+
+function recallFromMenu() {
+  if (!messageMenu.message?.id) return;
+  emit("recallMessage", messageMenu.message.id);
+  closeMessageMenu();
+}
+
+function deleteFromMenu() {
+  if (!messageMenu.message?.id) return;
+  emit("deleteMessage", messageMenu.message.id);
+  closeMessageMenu();
 }
 
 function addEmoji(emoji) {
@@ -213,6 +246,7 @@ function transferOwner() {
         :key="message.id || message.clientId || message.sendTime"
         class="message"
         :class="{ mine: String(message.senderId) === String(me.id) }"
+        @contextmenu.prevent="openMessageMenu($event, message)"
       >
         <div class="message-avatar">{{ avatarText({ displayName: nameOf(message.senderId) }) }}</div>
         <div class="message-stack">
@@ -271,6 +305,22 @@ function transferOwner() {
           </button>
         </div>
       </article>
+      <div v-if="messageMenu.open" class="message-menu-mask" @click="closeMessageMenu" @contextmenu.prevent="closeMessageMenu"></div>
+      <div
+        v-if="messageMenu.open"
+        class="message-context-menu"
+        :style="{ left: `${messageMenu.x}px`, top: `${messageMenu.y}px` }"
+      >
+        <button type="button" @click="replyFromMenu">
+          <MessageSquareQuote />回复
+        </button>
+        <button v-if="canRecall(messageMenu.message)" type="button" @click="recallFromMenu">
+          <RotateCcw />撤回
+        </button>
+        <button type="button" class="danger" @click="deleteFromMenu">
+          <Trash2 />删除
+        </button>
+      </div>
       <div v-if="!filteredMessages.length" class="message-empty">
         {{ messageKeyword ? "没有匹配的消息" : "还没有消息，发一句开始吧" }}
       </div>

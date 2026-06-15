@@ -9,6 +9,7 @@ import com.flowlink.service.MessageService;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -58,6 +59,12 @@ public class MessageController {
   public ApiResponse<Message> recall(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable("id") Long id) {
     User user = authService.requireUser(authorization);
     return ApiResponse.ok(messageService.recall(user.getId(), id, registry));
+  }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<Message> delete(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable("id") Long id) {
+    User user = authService.requireUser(authorization);
+    return ApiResponse.ok(messageService.delete(user.getId(), id, registry));
   }
 
   private Integer messageTypeOf(String value) {

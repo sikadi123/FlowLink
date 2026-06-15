@@ -64,7 +64,7 @@ public class SocialService {
     } catch (DuplicateKeyException e) {
       throw new BusinessException(409, "好友申请已发送");
     }
-    notificationService.create(receiverId, "friend_request", current.getDisplayName() + " 请求添加你为好友");
+    notificationService.create(receiverId, "friend_request", actorName(current) + " 请求添加你为好友");
     channelRegistry.send(receiverId, "friend_request_received", Map.of(
         "request", AuthService.publicRequest(request, current)
     ));
@@ -83,9 +83,9 @@ public class SocialService {
     if (accept) {
       saveFriendship(current.getId(), request.getSenderId());
       saveFriendship(request.getSenderId(), current.getId());
-      notificationService.create(request.getSenderId(), "friend_accepted", current.getDisplayName() + " 已通过你的好友申请");
+      notificationService.create(request.getSenderId(), "friend_accepted", actorName(current) + " 已通过你的好友申请");
     } else {
-      notificationService.create(request.getSenderId(), "friend_rejected", current.getDisplayName() + " 已拒绝你的好友申请");
+      notificationService.create(request.getSenderId(), "friend_rejected", actorName(current) + " 已拒绝你的好友申请");
     }
   }
 
@@ -120,5 +120,11 @@ public class SocialService {
     } else {
       friendshipMapper.insert(userId, friendId);
     }
+  }
+
+  private String actorName(User user) {
+    if (user == null) return "系统";
+    if (user.getDisplayName() != null && !user.getDisplayName().isBlank()) return user.getDisplayName();
+    return user.getUsername();
   }
 }

@@ -1,12 +1,12 @@
 <script setup>
-import { Bell, CheckCheck } from "@lucide/vue";
+import { Bell, CheckCheck, Trash2 } from "@lucide/vue";
 import { formatTime } from "../utils/display";
 
 defineProps({
   notifications: { type: Array, default: () => [] }
 });
 
-defineEmits(["mark-read"]);
+defineEmits(["mark-read", "delete-one", "delete-all"]);
 
 function labelOf(type) {
   const labels = {
@@ -15,7 +15,7 @@ function labelOf(type) {
     friend_rejected: "好友拒绝",
     group_invited: "入群邀请",
     group_updated: "群聊更新",
-    group_muted: "群聊禁言",
+    group_muted: "禁言通知",
     group_unmuted: "解除禁言",
     group_admin_set: "管理员变更",
     group_admin_unset: "管理员变更",
@@ -28,15 +28,20 @@ function labelOf(type) {
 
 <template>
   <section class="surface-page notification-page">
-    <header class="page-header">
+    <header class="page-header notification-header">
       <div class="avatar large">通</div>
-      <div>
+      <div class="notification-header-text">
         <h2>通知中心</h2>
         <p>好友申请、入群邀请、管理员变更和禁言通知都会汇总在这里。</p>
       </div>
-      <button class="mark-read-btn" type="button" @click="$emit('mark-read')">
-        <CheckCheck />全部已读
-      </button>
+      <div class="notification-header-actions">
+        <button class="mark-read-btn" type="button" @click="$emit('mark-read')">
+          <CheckCheck />全部已读
+        </button>
+        <button class="delete-all-btn" type="button" :disabled="!notifications.length" @click="$emit('delete-all')">
+          <Trash2 />清空通知
+        </button>
+      </div>
     </header>
 
     <div class="notification-list">
@@ -44,16 +49,19 @@ function labelOf(type) {
         v-for="item in notifications"
         :key="item.id"
         class="notification-item"
-        :class="{ unread: !item.read }"
+        :class="{ 'notification-item-unread': !item.read }"
       >
         <div class="notification-icon"><Bell /></div>
-        <div>
+        <div class="notification-body">
           <div class="notification-title">
             <strong>{{ labelOf(item.type) }}</strong>
             <time>{{ formatTime(item.createdAt) }}</time>
           </div>
           <p>{{ item.content }}</p>
         </div>
+        <button class="notification-delete" type="button" title="删除通知" @click="$emit('delete-one', item.id)">
+          <Trash2 />
+        </button>
       </article>
 
       <div v-if="!notifications.length" class="empty-sidebar notification-empty">
