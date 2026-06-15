@@ -6,6 +6,7 @@ import com.flowlink.domain.User;
 import com.flowlink.mapper.FriendRequestMapper;
 import com.flowlink.mapper.FriendshipMapper;
 import com.flowlink.mapper.UserMapper;
+import com.flowlink.realtime.ChannelRegistry;
 import java.util.List;
 import java.util.Map;
 import org.springframework.dao.DuplicateKeyException;
@@ -21,12 +22,14 @@ public class SocialService {
   private final FriendshipMapper friendshipMapper;
   private final FriendRequestMapper requestMapper;
   private final NotificationService notificationService;
+  private final ChannelRegistry channelRegistry;
 
-  public SocialService(UserMapper userMapper, FriendshipMapper friendshipMapper, FriendRequestMapper requestMapper, NotificationService notificationService) {
+  public SocialService(UserMapper userMapper, FriendshipMapper friendshipMapper, FriendRequestMapper requestMapper, NotificationService notificationService, ChannelRegistry channelRegistry) {
     this.userMapper = userMapper;
     this.friendshipMapper = friendshipMapper;
     this.requestMapper = requestMapper;
     this.notificationService = notificationService;
+    this.channelRegistry = channelRegistry;
   }
 
   public List<Map<String, Object>> searchUsers(User current, String keyword) {
@@ -62,6 +65,9 @@ public class SocialService {
       throw new BusinessException(409, "好友申请已发送");
     }
     notificationService.create(receiverId, "friend_request", current.getDisplayName() + " 请求添加你为好友");
+    channelRegistry.send(receiverId, "friend_request_received", Map.of(
+        "request", AuthService.publicRequest(request, current)
+    ));
     return request;
   }
 

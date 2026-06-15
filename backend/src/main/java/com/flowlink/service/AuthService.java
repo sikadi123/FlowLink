@@ -1,6 +1,7 @@
 package com.flowlink.service;
 
 import com.flowlink.common.BusinessException;
+import com.flowlink.domain.FriendRequest;
 import com.flowlink.domain.User;
 import com.flowlink.mapper.UserMapper;
 import java.nio.charset.StandardCharsets;
@@ -114,5 +115,16 @@ public class AuthService {
 
   private String text(String value) {
     return value == null ? "" : value.trim();
+  }
+
+  public static Map<String, Object> publicRequest(FriendRequest request, User sender) {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("id", request.getId());
+    result.put("senderId", request.getSenderId());
+    result.put("receiverId", request.getReceiverId());
+    result.put("message", request.getMessage() == null ? "" : request.getMessage());
+    result.put("status", request.getStatus());
+    result.put("senderName", sender == null ? "未知用户" : sender.getDisplayName());
+    return result;
   }
 }

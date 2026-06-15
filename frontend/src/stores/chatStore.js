@@ -410,6 +410,16 @@ export const useChatStore = defineStore("chat", {
       }
       if (packet.action === "message_ack") this.connectionStatus = "online";
       if (packet.action === "message_failed") this.toast(packet.payload.message || "消息发送失败");
+      if (packet.action === "friend_request_received") {
+        const req = packet.payload.request;
+        if (req) {
+          const existing = this.requests.find((item) => Number(item.id) === Number(req.id));
+          if (!existing) {
+            this.requests = [req, ...this.requests];
+            this.toast(`收到来自 ${req.senderName || "用户"} 的好友申请`);
+          }
+        }
+      }
     },
     async recallMessage(messageId) {
       if (!messageId) return;

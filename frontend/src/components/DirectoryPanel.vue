@@ -7,7 +7,8 @@ const props = defineProps({
   contacts: { type: Array, default: () => [] },
   groups: { type: Array, default: () => [] },
   requests: { type: Array, default: () => [] },
-  searchResults: { type: Array, default: () => [] }
+  searchResults: { type: Array, default: () => [] },
+  currentUserId: { type: Number, default: null }
 });
 
 const emit = defineEmits(["select", "search-users", "request-friend", "respond-request", "create-group"]);
@@ -15,7 +16,7 @@ const keyword = ref("");
 const friendMessage = ref("你好，希望添加你为好友");
 const groupForm = reactive({ name: "", notice: "", memberIds: [] });
 
-const pendingRequests = computed(() => props.requests.filter((item) => Number(item.status) === 0));
+const pendingRequests = computed(() => props.requests.filter((item) => Number(item.status) === 0 && Number(item.receiverId) === props.currentUserId));
 const groupMembers = computed(() => props.contacts.filter((item) => groupForm.memberIds.includes(item.id)));
 
 function toggleMember(id) {

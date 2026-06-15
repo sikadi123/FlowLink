@@ -81,6 +81,7 @@ async function searchUsers(keyword) {
         :groups="store.groups"
         :requests="store.requests"
         :search-results="userSearchResults"
+        :current-user-id="store.me?.id"
         @select="store.selectConversation"
         @search-users="searchUsers"
         @request-friend="store.requestFriend"
