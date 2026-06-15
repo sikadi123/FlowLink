@@ -29,6 +29,8 @@ async function searchUsers(keyword) {
 </script>
 
 <template>
+  <div class="toast" :class="{ show: store.toastText }">{{ store.toastText }}</div>
+
   <AuthView v-if="!store.me" />
 
   <main v-else class="workspace" :class="{ 'surface-mode': store.surfaceMode }">
@@ -112,6 +114,5 @@ async function searchUsers(keyword) {
       />
     </section>
 
-    <div class="toast" :class="{ show: store.toastText }">{{ store.toastText }}</div>
   </main>
 </template>

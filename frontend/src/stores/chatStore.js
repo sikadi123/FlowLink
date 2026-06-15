@@ -72,6 +72,17 @@ export const useChatStore = defineStore("chat", {
       await this.bootstrap();
       this.connectRealtime();
     },
+    async register(form) {
+      const data = await request("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(form)
+      });
+      this.token = data.token;
+      localStorage.setItem("flowlink_token", data.token);
+      await this.bootstrap();
+      this.connectRealtime();
+      this.toast("注册成功，欢迎加入 FlowLink");
+    },
     async logout() {
       try {
         await request("/api/auth/logout", { method: "POST" });
