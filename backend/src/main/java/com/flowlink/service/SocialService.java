@@ -8,6 +8,7 @@ import com.flowlink.mapper.FriendshipMapper;
 import com.flowlink.mapper.UserMapper;
 import java.util.List;
 import java.util.Map;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,7 +56,11 @@ public class SocialService {
     request.setSenderId(current.getId());
     request.setReceiverId(receiverId);
     request.setMessage(message == null || message.isBlank() ? "希望添加你为好友" : message.trim());
-    requestMapper.insert(request);
+    try {
+      requestMapper.insert(request);
+    } catch (DuplicateKeyException e) {
+      throw new BusinessException(409, "好友申请已发送");
+    }
     notificationService.create(receiverId, "friend_request", current.getDisplayName() + " 请求添加你为好友");
     return request;
   }
@@ -68,6 +73,7 @@ public class SocialService {
     boolean accept = "accept".equalsIgnoreCase(action) || "accepted".equalsIgnoreCase(action);
     requestMapper.updateStatus(requestId, accept ? REQUEST_ACCEPTED : REQUEST_REJECTED);
     User sender = userMapper.findById(request.getSenderId());
+    if (sender == null) throw new BusinessException(404, "申请发送者不存在");
     if (accept) {
       saveFriendship(current.getId(), request.getSenderId());
       saveFriendship(request.getSenderId(), current.getId());
@@ -75,7 +81,6 @@ public class SocialService {
     } else {
       notificationService.create(request.getSenderId(), "friend_rejected", current.getDisplayName() + " 已拒绝你的好友申请");
     }
-    if (sender == null) throw new BusinessException(404, "申请发送者不存在");
   }
 
   @Transactional

@@ -139,20 +139,28 @@ export const useChatStore = defineStore("chat", {
       return request(`/api/users?q=${encodeURIComponent(keyword.trim())}`);
     },
     async requestFriend(toId, message = "你好，希望添加你为好友") {
-      await request("/api/friends/request", {
-        method: "POST",
-        body: JSON.stringify({ toId, message })
-      });
-      await this.bootstrap();
-      this.toast("好友申请已发送");
+      try {
+        await request("/api/friends/request", {
+          method: "POST",
+          body: JSON.stringify({ toId, message })
+        });
+        await this.bootstrap();
+        this.toast("好友申请已发送");
+      } catch (error) {
+        this.toast(error.message || "好友申请发送失败");
+      }
     },
     async respondFriendRequest(requestId, action) {
-      await request("/api/friends/respond", {
-        method: "POST",
-        body: JSON.stringify({ requestId, action })
-      });
-      await this.bootstrap();
-      this.toast(action === "accept" ? "已通过好友申请" : "已拒绝好友申请");
+      try {
+        await request("/api/friends/respond", {
+          method: "POST",
+          body: JSON.stringify({ requestId, action })
+        });
+        await this.bootstrap();
+        this.toast(action === "accept" ? "已通过好友申请" : "已拒绝好友申请");
+      } catch (error) {
+        this.toast(error.message || "操作失败");
+      }
     },
     async createGroup(form) {
       const group = await request("/api/groups", {
