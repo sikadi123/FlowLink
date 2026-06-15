@@ -65,6 +65,28 @@ input:focus, textarea:focus { border-color: rgba(7, 193, 96, .55); box-shadow: 0
 .brand-mark { width: 56px; height: 56px; font-size: 26px; }
 .brand-row h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 .brand-row p, .auth-panel p { margin: 5px 0 0; color: var(--muted); }
+.auth-tabs {
+  margin-top: 26px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: #eef3f7;
+  border: 1px solid #dde6ee;
+  border-radius: 8px;
+}
+.auth-tabs button {
+  height: 38px;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6675;
+  font-weight: 700;
+}
+.auth-tabs button.active {
+  background: #fff;
+  color: var(--green-dark);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
+}
 .auth-form { display: grid; gap: 14px; margin-top: 28px; }
 .auth-form label, .profile-grid label { display: grid; gap: 7px; color: #344054; font-size: 13px; }
 .auth-form button, .profile-grid button, .send-btn {
@@ -73,6 +95,10 @@ input:focus, textarea:focus { border-color: rgba(7, 193, 96, .55); box-shadow: 0
   background: var(--green);
   color: #fff;
   font-weight: 700;
+}
+.auth-form button:disabled {
+  cursor: not-allowed;
+  opacity: .72;
 }
 .auth-form button:hover, .profile-grid button:hover, .send-btn:hover { background: var(--green-dark); }
 .demo-account {
