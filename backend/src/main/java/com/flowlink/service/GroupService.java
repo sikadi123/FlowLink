@@ -7,7 +7,9 @@ import com.flowlink.domain.User;
 import com.flowlink.mapper.GroupMapper;
 import com.flowlink.mapper.GroupMemberMapper;
 import com.flowlink.mapper.UserMapper;
+import com.flowlink.realtime.ChannelRegistry;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,12 +22,14 @@ public class GroupService {
   private final GroupMemberMapper memberMapper;
   private final NotificationService notificationService;
   private final UserMapper userMapper;
+  private final ChannelRegistry channelRegistry;
 
-  public GroupService(GroupMapper groupMapper, GroupMemberMapper memberMapper, NotificationService notificationService, UserMapper userMapper) {
+  public GroupService(GroupMapper groupMapper, GroupMemberMapper memberMapper, NotificationService notificationService, UserMapper userMapper, ChannelRegistry channelRegistry) {
     this.groupMapper = groupMapper;
     this.memberMapper = memberMapper;
     this.notificationService = notificationService;
     this.userMapper = userMapper;
+    this.channelRegistry = channelRegistry;
   }
 
   public List<ChatGroup> myGroups(Long userId) {
@@ -153,6 +157,19 @@ public class GroupService {
     return memberMapper.findActiveMembers(groupId);
   }
 
+  @Transactional
+  public void updateMyNickname(Long userId, Long groupId, String nickname) {
+    requireMember(groupId, userId);
+    String value = nickname == null ? "" : nickname.trim();
+    if (value.length() > 50) throw new BusinessException(400, "群昵称不能超过 50 个字符");
+    memberMapper.updateNickname(groupId, userId, value);
+    broadcastGroupChanged(groupId, "group_member_updated", Map.of(
+        "groupId", groupId,
+        "userId", userId,
+        "groupNickname", value
+    ));
+  }
+
   public void addMember(Long groupId, Long userId, int role) {
     GroupMember existed = memberMapper.findAny(groupId, userId);
     GroupMember member = new GroupMember();
@@ -174,6 +191,12 @@ public class GroupService {
   private void notifyGroupMembers(Long groupId, Long exceptUserId, String type, String content) {
     for (GroupMember member : memberMapper.findActiveMembers(groupId)) {
       if (!member.getUserId().equals(exceptUserId)) notificationService.create(member.getUserId(), type, content);
+    }
+  }
+
+  private void broadcastGroupChanged(Long groupId, String action, Object payload) {
+    for (GroupMember member : memberMapper.findActiveMembers(groupId)) {
+      channelRegistry.send(member.getUserId(), action, payload);
     }
   }
 

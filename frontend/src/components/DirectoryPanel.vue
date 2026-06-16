@@ -16,8 +16,19 @@ const keyword = ref("");
 const friendMessage = ref("你好，希望添加你为好友");
 const groupForm = reactive({ name: "", notice: "", memberIds: [] });
 
-const pendingRequests = computed(() => props.requests.filter((item) => Number(item.status) === 0 && Number(item.receiverId) === props.currentUserId));
+const pendingRequests = computed(() =>
+  props.requests.filter((item) => Number(item.status) === 0 && Number(item.receiverId) === Number(props.currentUserId))
+);
+
+const sentRequests = computed(() =>
+  props.requests.filter((item) => Number(item.status) === 0 && Number(item.senderId) === Number(props.currentUserId))
+);
+
 const groupMembers = computed(() => props.contacts.filter((item) => groupForm.memberIds.includes(item.id)));
+
+function requestName(request) {
+  return request.senderName || request.senderDisplayName || request.senderUsername || `用户 ${request.senderId}`;
+}
 
 function toggleMember(id) {
   groupForm.memberIds = groupForm.memberIds.includes(id)
@@ -41,15 +52,45 @@ function createGroup() {
 <template>
   <section class="surface-page directory-page">
     <header class="page-header">
-      <div class="avatar large">通</div>
+      <div class="avatar large">录</div>
       <div>
         <h2>通讯录</h2>
-        <p>管理联系人、好友申请和群聊，所有操作都会同步到后端。</p>
+        <p>管理联系人、好友申请和群聊，新的申请会优先显示在待处理区。</p>
       </div>
     </header>
 
     <div class="directory-workbench">
       <section class="directory-main">
+        <section class="directory-request-board" :class="{ active: pendingRequests.length }">
+          <div class="directory-request-heading">
+            <div>
+              <strong>好友申请待办</strong>
+              <span v-if="pendingRequests.length">有 {{ pendingRequests.length }} 条申请需要处理</span>
+              <span v-else>暂无待处理申请</span>
+            </div>
+            <em v-if="pendingRequests.length">{{ pendingRequests.length }}</em>
+          </div>
+
+          <div v-if="pendingRequests.length" class="request-card-grid">
+            <article v-for="request in pendingRequests" :key="request.id" class="request-card">
+              <div class="avatar">{{ requestName(request).slice(0, 1).toUpperCase() }}</div>
+              <div class="request-card-copy">
+                <strong>{{ requestName(request) }}</strong>
+                <span>{{ request.message || "对方希望添加你为好友" }}</span>
+              </div>
+              <div class="request-card-actions">
+                <button class="accept" type="button" @click="$emit('respond-request', request.id, 'accept')">
+                  <Check />同意
+                </button>
+                <button class="reject" type="button" @click="$emit('respond-request', request.id, 'reject')">
+                  <X />拒绝
+                </button>
+              </div>
+            </article>
+          </div>
+          <p v-else class="muted-text">收到新的好友申请后，这里会显示申请人、留言和快捷操作。</p>
+        </section>
+
         <div class="section-title"><UsersRound /><strong>群聊</strong><span>{{ groups.length }}</span></div>
         <article v-for="group in groups" :key="group.id" class="directory-card" @click="$emit('select', 'group', group.id)">
           <div class="avatar group">{{ avatarText(group) }}</div>
@@ -86,16 +127,17 @@ function createGroup() {
         </section>
 
         <section class="tool-panel">
-          <h3>好友申请</h3>
+          <h3>申请状态</h3>
           <article v-for="request in pendingRequests" :key="request.id" class="request-row">
             <div>
-              <strong>用户 {{ request.senderId }}</strong>
-              <span>{{ request.message }}</span>
+              <strong>{{ requestName(request) }}</strong>
+              <span>{{ request.message || "请求添加你为好友" }}</span>
             </div>
             <button title="通过" type="button" @click="$emit('respond-request', request.id, 'accept')"><Check /></button>
             <button title="拒绝" type="button" @click="$emit('respond-request', request.id, 'reject')"><X /></button>
           </article>
           <p v-if="!pendingRequests.length" class="muted-text">暂无待处理申请</p>
+          <p v-if="sentRequests.length" class="muted-text">你发出的 {{ sentRequests.length }} 条申请正在等待对方处理。</p>
         </section>
 
         <section class="tool-panel">

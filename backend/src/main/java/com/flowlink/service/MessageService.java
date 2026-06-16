@@ -23,14 +23,16 @@ public class MessageService {
   private final FileRecordMapper fileRecordMapper;
   private final FriendshipMapper friendshipMapper;
   private final RedisStateService redisStateService;
+  private final AiAssistantService aiAssistantService;
 
-  public MessageService(MessageMapper messageMapper, GroupService groupService, GroupMemberMapper memberMapper, FileRecordMapper fileRecordMapper, FriendshipMapper friendshipMapper, RedisStateService redisStateService) {
+  public MessageService(MessageMapper messageMapper, GroupService groupService, GroupMemberMapper memberMapper, FileRecordMapper fileRecordMapper, FriendshipMapper friendshipMapper, RedisStateService redisStateService, AiAssistantService aiAssistantService) {
     this.messageMapper = messageMapper;
     this.groupService = groupService;
     this.memberMapper = memberMapper;
     this.fileRecordMapper = fileRecordMapper;
     this.friendshipMapper = friendshipMapper;
     this.redisStateService = redisStateService;
+    this.aiAssistantService = aiAssistantService;
   }
 
   public List<Message> history(Long userId, String type, Long targetId) {
@@ -77,8 +79,26 @@ public class MessageService {
       message.setFileType(fileRecord.getFileType());
       message.setFileUrl(fileRecord.getAccessUrl());
     }
+    Message saved = messageMapper.findFullById(message.getId());
+    if (saved != null) message = saved;
     pushNewMessage(senderId, type, targetId, message, registry);
+    if ("private".equals(type) && aiAssistantService.isAssistant(targetId) && Integer.valueOf(1).equals(message.getMessageType())) {
+      createAssistantReply(senderId, message.getContent(), registry);
+    }
     return message;
+  }
+
+  private void createAssistantReply(Long receiverId, String prompt, ChannelRegistry registry) {
+    Message reply = new Message();
+    reply.setSenderId(aiAssistantService.assistantUserId());
+    reply.setReceiverId(receiverId);
+    reply.setConversationType(1);
+    reply.setMessageType(1);
+    reply.setContent(aiAssistantService.reply(prompt));
+    reply.setClientId("ai_" + System.currentTimeMillis());
+    messageMapper.insert(reply);
+    Message saved = messageMapper.findFullById(reply.getId());
+    pushNewMessage(reply.getSenderId(), "private", receiverId, saved == null ? reply : saved, registry);
   }
 
   public Map<String, Object> createFromRealtime(Long senderId, Map<String, Object> payload, ChannelRegistry registry) {

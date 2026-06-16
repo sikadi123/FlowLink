@@ -1,7 +1,15 @@
 import { resolveUrl } from "../api/http";
 
+export function displayName(item) {
+  return item?.groupNickname || item?.displayName || item?.name || item?.username || "未命名";
+}
+
+export function accountName(item) {
+  return item?.username ? `@${item.username}` : "";
+}
+
 export function avatarText(item) {
-  return (item?.displayName || item?.name || item?.username || "F").slice(0, 1).toUpperCase();
+  return displayName(item).slice(0, 1).toUpperCase();
 }
 
 export function avatarStyle(item) {
@@ -15,11 +23,19 @@ export function avatarImage(item) {
 }
 
 export function entityTitle(item) {
-  return item?.name || item?.displayName || item?.username || "未命名";
+  return displayName(item);
 }
 
 export function entitySubtitle(item) {
+  if (item?.isAiAssistant) return "AI 助手 · 可帮助整理答辩、功能和开发问题";
+  if (item?.groupNickname && item?.displayName) return `${item.displayName} · ${accountName(item)}`;
   return item?.notice || item?.statusMessage || item?.role || item?.username || "FlowLink";
+}
+
+export function roleLabel(role) {
+  if (Number(role) === 2) return "群主";
+  if (Number(role) === 1) return "管理员";
+  return "成员";
 }
 
 export function previewText(item) {
@@ -27,6 +43,7 @@ export function previewText(item) {
   if (!message) return entitySubtitle(item);
   if (message.messageType === 2 || message.messageType === "image") return "[图片]";
   if (message.messageType === 3 || message.messageType === "file") return "[文件]";
+  if (message.messageType === 4 || message.messageType === "voice") return "[语音]";
   return message.content || entitySubtitle(item);
 }
 

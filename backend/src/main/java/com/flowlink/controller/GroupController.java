@@ -115,6 +115,17 @@ public class GroupController {
     return ApiResponse.ok(true);
   }
 
+  @PatchMapping("/{id}/my-nickname")
+  public ApiResponse<Boolean> updateMyNickname(
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      @PathVariable("id") Long id,
+      @RequestBody Map<String, Object> body
+  ) {
+    User user = authService.requireUser(authorization);
+    groupService.updateMyNickname(user.getId(), id, String.valueOf(body.getOrDefault("nickname", "")));
+    return ApiResponse.ok(true);
+  }
+
   @GetMapping("/{id}/members")
   public ApiResponse<List<GroupMember>> members(
       @RequestHeader(value = "Authorization", required = false) String authorization,

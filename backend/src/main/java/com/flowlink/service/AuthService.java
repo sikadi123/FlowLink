@@ -3,6 +3,7 @@ package com.flowlink.service;
 import com.flowlink.common.BusinessException;
 import com.flowlink.domain.FriendRequest;
 import com.flowlink.domain.User;
+import com.flowlink.mapper.FriendshipMapper;
 import com.flowlink.mapper.UserMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -16,10 +17,14 @@ import org.springframework.stereotype.Service;
 public class AuthService {
   private final UserMapper userMapper;
   private final RedisStateService redisStateService;
+  private final FriendshipMapper friendshipMapper;
+  private final AiAssistantService aiAssistantService;
 
-  public AuthService(UserMapper userMapper, RedisStateService redisStateService) {
+  public AuthService(UserMapper userMapper, RedisStateService redisStateService, FriendshipMapper friendshipMapper, AiAssistantService aiAssistantService) {
     this.userMapper = userMapper;
     this.redisStateService = redisStateService;
+    this.friendshipMapper = friendshipMapper;
+    this.aiAssistantService = aiAssistantService;
   }
 
   public Map<String, Object> login(String account, String password) {
@@ -55,6 +60,7 @@ public class AuthService {
     user.setStatusMessage("刚刚加入 FlowLink");
     user.setStatus(2);
     userMapper.insert(user);
+    ensureAiFriendship(user.getId());
     return login(username, password);
   }
 
@@ -92,6 +98,7 @@ public class AuthService {
     result.put("location", nullToEmpty(user.getLocation()));
     result.put("statusMessage", nullToEmpty(user.getStatusMessage()));
     result.put("status", user.getStatus() != null && user.getStatus() == 3 ? "online" : "offline");
+    result.put("isAiAssistant", user.getId() != null && user.getId() == 9001L);
     return result;
   }
 
@@ -115,6 +122,16 @@ public class AuthService {
 
   private String text(String value) {
     return value == null ? "" : value.trim();
+  }
+
+  private void ensureAiFriendship(Long userId) {
+    Long assistantId = aiAssistantService.assistantUserId();
+    if (userId == null || userId.equals(assistantId)) return;
+    if (userMapper.findById(assistantId) == null) return;
+    if (friendshipMapper.countAny(userId, assistantId) > 0) friendshipMapper.restore(userId, assistantId);
+    else friendshipMapper.insert(userId, assistantId);
+    if (friendshipMapper.countAny(assistantId, userId) > 0) friendshipMapper.restore(assistantId, userId);
+    else friendshipMapper.insert(assistantId, userId);
   }
 
   public static Map<String, Object> publicRequest(FriendRequest request, User sender) {

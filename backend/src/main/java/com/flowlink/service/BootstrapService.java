@@ -55,6 +55,7 @@ public class BootstrapService {
       User user = userMapper.findById(member.getUserId());
       Map<String, Object> payload = user == null ? new LinkedHashMap<>() : AuthService.publicUser(user);
       payload.put("groupRole", member.getRole());
+      payload.put("groupNickname", member.getNicknameInGroup() == null ? "" : member.getNicknameInGroup());
       payload.put("muted", Boolean.TRUE.equals(member.getMuted()));
       members.add(payload);
     }

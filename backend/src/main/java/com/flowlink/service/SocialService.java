@@ -44,8 +44,10 @@ public class SocialService {
         .toList();
   }
 
-  public List<FriendRequest> myRequests(Long userId) {
-    return requestMapper.findByUser(userId);
+  public List<Map<String, Object>> myRequests(Long userId) {
+    return requestMapper.findByUser(userId).stream()
+        .map(request -> AuthService.publicRequest(request, userMapper.findById(request.getSenderId())))
+        .toList();
   }
 
   @Transactional

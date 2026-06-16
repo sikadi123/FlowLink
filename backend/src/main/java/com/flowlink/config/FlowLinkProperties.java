@@ -8,6 +8,7 @@ public class FlowLinkProperties {
   private final Session session = new Session();
   private final Minio minio = new Minio();
   private final Storage storage = new Storage();
+  private final Ai ai = new Ai();
 
   public Netty getNetty() {
     return netty;
@@ -23,6 +24,10 @@ public class FlowLinkProperties {
 
   public Storage getStorage() {
     return storage;
+  }
+
+  public Ai getAi() {
+    return ai;
   }
 
   public static class Netty {
@@ -68,5 +73,23 @@ public class FlowLinkProperties {
     public void setLocalDir(String localDir) { this.localDir = localDir; }
     public String getPublicPath() { return publicPath; }
     public void setPublicPath(String publicPath) { this.publicPath = publicPath; }
+  }
+
+  public static class Ai {
+    private boolean enabled = true;
+    private long assistantUserId = 9001;
+    private String baseUrl = "https://api.openai.com/v1/chat/completions";
+    private String apiKey = "";
+    private String model = "gpt-4o-mini";
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public long getAssistantUserId() { return assistantUserId; }
+    public void setAssistantUserId(long assistantUserId) { this.assistantUserId = assistantUserId; }
+    public String getBaseUrl() { return baseUrl; }
+    public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+    public String getApiKey() { return apiKey; }
+    public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
   }
 }

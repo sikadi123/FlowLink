@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from "vue";
 import AppRail from "./components/AppRail.vue";
 import AuthView from "./components/AuthView.vue";
+import CallOverlay from "./components/CallOverlay.vue";
 import ChatPanel from "./components/ChatPanel.vue";
 import ConversationSidebar from "./components/ConversationSidebar.vue";
 import DirectoryPanel from "./components/DirectoryPanel.vue";
@@ -34,6 +35,18 @@ function openProfile() {
 async function searchUsers(keyword) {
   userSearchResults.value = await store.searchUsers(keyword);
 }
+
+async function openContactsFromNotification() {
+  await store.setTab("contacts");
+}
+
+async function respondNotificationRequest(requestId, action, notificationId) {
+  await store.respondFriendRequest(requestId, action);
+  if (notificationId) {
+    await store.deleteNotification(notificationId);
+  }
+  await store.setTab("contacts");
+}
 </script>
 
 <template>
@@ -46,7 +59,8 @@ async function searchUsers(keyword) {
     class="workspace"
     :class="[
       { 'surface-mode': store.surfaceMode, 'has-selected': !!store.selected },
-      `tab-${store.activeTab}`
+      `tab-${store.activeTab}`,
+      `theme-${store.theme}`
     ]"
   >
     <AppRail
@@ -81,15 +95,21 @@ async function searchUsers(keyword) {
         :me="store.me"
         :form="profileForm"
         :upload-avatar="store.uploadAvatar"
+        :theme="store.theme"
         @save="store.saveProfile"
+        @change-theme="store.setTheme"
       />
 
       <NotificationPanel
         v-else-if="store.activeTab === 'notifications'"
         :notifications="store.notifications"
+        :requests="store.requests"
+        :current-user-id="store.me?.id"
         @mark-read="store.markNotificationsRead"
         @delete-one="store.deleteNotification"
         @delete-all="store.deleteAllNotifications"
+        @open-contacts="openContactsFromNotification"
+        @respond-request="respondNotificationRequest"
       />
 
       <DirectoryPanel
@@ -117,11 +137,13 @@ async function searchUsers(keyword) {
         @send-text="store.sendText"
         @send-reply="store.sendReply"
         @send-file="store.uploadAndSend"
+        @send-voice="store.uploadAndSendVoice"
         @recall-message="store.recallMessage"
         @delete-message="store.deleteMessage"
         @back="store.closeConversation"
         @load-earlier="store.loadEarlierMessages"
         @update-group="store.updateGroup"
+        @update-my-group-nickname="store.updateMyGroupNickname"
         @invite-group-members="store.inviteGroupMembers"
         @remove-group-member="store.removeGroupMember"
         @set-group-admin="store.setGroupAdmin"
@@ -131,8 +153,17 @@ async function searchUsers(keyword) {
         @dissolve-group="store.dissolveGroup"
         @delete-friend="store.deleteFriend"
         @block-friend="store.blockFriend"
+        @start-video-call="store.startVideoCall"
       />
     </section>
 
+    <CallOverlay
+      :call="store.call"
+      @accept="store.acceptCall"
+      @reject="store.rejectCall"
+      @hangup="store.hangupCall"
+      @toggle-mic="store.toggleCallMic"
+      @toggle-camera="store.toggleCallCamera"
+    />
   </main>
 </template>

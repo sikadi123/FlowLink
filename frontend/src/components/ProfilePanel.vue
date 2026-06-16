@@ -6,10 +6,11 @@ import { avatarImage, avatarStyle, avatarText } from "../utils/display";
 const props = defineProps({
   me: { type: Object, required: true },
   form: { type: Object, required: true },
-  uploadAvatar: { type: Function, required: true }
+  uploadAvatar: { type: Function, required: true },
+  theme: { type: String, default: "wechat" }
 });
 
-defineEmits(["save"]);
+defineEmits(["save", "change-theme"]);
 const uploadingAvatar = ref(false);
 const uploadError = ref("");
 
@@ -19,6 +20,13 @@ const avatarPresets = [
   "linear-gradient(135deg,#7c3aed,#2f80ed)",
   "linear-gradient(135deg,#111827,#667085)",
   "linear-gradient(135deg,#ec4899,#f97316)"
+];
+
+const themes = [
+  { key: "wechat", name: "微信绿", color: "#07c160" },
+  { key: "ocean", name: "海盐蓝", color: "#2f80ed" },
+  { key: "grape", name: "葡萄紫", color: "#7c3aed" },
+  { key: "sunset", name: "日落橙", color: "#f97316" }
 ];
 
 const completion = computed(() => {
@@ -132,6 +140,25 @@ async function chooseAvatar(event) {
               :class="{ active: form.avatarUrl === preset }"
               @click="applyPreset(preset)"
             ></button>
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <div class="profile-section-title">
+            <Sparkles />
+            <div><strong>界面主题</strong><span>选择主色调，会保存到本机并立即生效</span></div>
+          </div>
+          <div class="theme-picker">
+            <button
+              v-for="item in themes"
+              :key="item.key"
+              type="button"
+              :class="{ active: theme === item.key }"
+              @click="$emit('change-theme', item.key)"
+            >
+              <i :style="{ background: item.color }"></i>
+              <span>{{ item.name }}</span>
+            </button>
           </div>
         </section>
 

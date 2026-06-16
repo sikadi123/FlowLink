@@ -34,6 +34,9 @@ public interface GroupMemberMapper {
   @Update("update group_member set muted = #{muted}, muted_by = #{mutedBy}, muted_until = #{mutedUntil} where group_id = #{groupId} and user_id = #{userId}")
   void updateMute(GroupMember member);
 
+  @Update("update group_member set nickname_in_group = #{nickname} where group_id = #{groupId} and user_id = #{userId} and status = 1")
+  void updateNickname(@Param("groupId") Long groupId, @Param("userId") Long userId, @Param("nickname") String nickname);
+
   @Update("update group_member set status = 0 where group_id = #{groupId} and user_id = #{userId}")
   void markLeft(@Param("groupId") Long groupId, @Param("userId") Long userId);
 }

@@ -20,6 +20,24 @@ public interface MessageMapper {
   void insert(Message message);
 
   @Select("""
+      select
+        id,
+        conversation_type,
+        sender_id,
+        receiver_id,
+        group_id,
+        content,
+        message_type,
+        client_id,
+        send_time,
+        is_recalled as recalled,
+        recall_time
+      from message
+      where id = #{id}
+      """)
+  Message findFullById(@Param("id") Long id);
+
+  @Select("""
       <script>
       select
         m.id,

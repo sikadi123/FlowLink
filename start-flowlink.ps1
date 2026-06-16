@@ -79,6 +79,12 @@ try {
     throw "MySQL did not become healthy. Check Docker Desktop."
   }
 
+  Write-Host "Applying database migrations..."
+  & $docker exec -i flowlink-mysql mysql -uroot -proot flowlink -e "source /docker-entrypoint-initdb.d/03-ai-group-nickname.sql"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "Migration warning: AI assistant/group nickname migration was not applied. Continuing startup." -ForegroundColor Yellow
+  }
+
   Write-Host "Stopping old FlowLink application processes..."
   5173, 8080, 8090 | ForEach-Object { Stop-PortProcess $_ }
 

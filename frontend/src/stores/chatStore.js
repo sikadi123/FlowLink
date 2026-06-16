@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { markRaw } from "vue";
 import { getRealtimeBase, request } from "../api/http";
 
 export const useChatStore = defineStore("chat", {
@@ -12,6 +13,7 @@ export const useChatStore = defineStore("chat", {
     notifications: [],
     pinnedConversations: JSON.parse(localStorage.getItem("flowlink_pinned") || "[]"),
     hiddenConversations: JSON.parse(localStorage.getItem("flowlink_hidden") || "[]"),
+    theme: localStorage.getItem("flowlink_theme") || "wechat",
     activeTab: "chats",
     selected: null,
     messages: [],
@@ -22,6 +24,22 @@ export const useChatStore = defineStore("chat", {
     backendStatus: "unknown",
     connectionStatus: "offline",
     pending: new Map(),
+    call: {
+      visible: false,
+      status: "idle",
+      callId: "",
+      peerId: null,
+      peerName: "",
+      incoming: false,
+      mediaType: "video",
+      localStream: null,
+      remoteStream: null,
+      pc: null,
+      muted: false,
+      cameraOff: false,
+      errorText: "",
+      iceQueue: []
+    },
     toastText: ""
   }),
   getters: {
@@ -130,7 +148,7 @@ export const useChatStore = defineStore("chat", {
       if (contact) return contact.displayName || contact.username || "联系人";
       for (const group of this.groups) {
         const member = group.members?.find((item) => String(item.id) === String(userId));
-        if (member) return member.displayName || member.username || "成员";
+        if (member) return member.groupNickname || member.displayName || member.username || "成员";
       }
       return `用户 ${userId}`;
     },
@@ -196,6 +214,14 @@ export const useChatStore = defineStore("chat", {
       });
       await this.bootstrap();
       this.toast("群聊资料已更新");
+    },
+    async updateMyGroupNickname(groupId, nickname) {
+      await request(`/api/groups/${groupId}/my-nickname`, {
+        method: "PATCH",
+        body: JSON.stringify({ nickname })
+      });
+      await this.bootstrap();
+      this.toast("群昵称已保存");
     },
     async inviteGroupMembers(groupId, memberIds) {
       if (!memberIds.length) return;
@@ -395,6 +421,14 @@ export const useChatStore = defineStore("chat", {
         this.connectionStatus = "online";
         return;
       }
+      if (String(packet.action || "").startsWith("call_")) {
+        this.handleCallSignal(packet.action, packet.payload || {});
+        return;
+      }
+      if (packet.action === "group_member_updated") {
+        this.applyGroupMemberUpdate(packet.payload || {});
+        return;
+      }
       if (packet.action === "new_message") {
         const message = packet.payload.message;
         const type = message.conversationType === 2 || message.conversationType === "group" ? "group" : "private";
@@ -514,6 +548,17 @@ export const useChatStore = defineStore("chat", {
         fileType: meta.fileType
       });
     },
+    async uploadAndSendVoice(file, duration = 0) {
+      const form = new FormData();
+      form.append("file", file);
+      const meta = await request("/api/files/upload", { method: "POST", body: form });
+      await this.sendMessage(meta.url, 4, meta.fileRecordId, {
+        fileName: meta.fileName,
+        fileSize: meta.fileSize,
+        fileType: meta.fileType,
+        voiceDuration: duration
+      });
+    },
     async uploadAvatar(file) {
       const form = new FormData();
       form.append("file", file);
@@ -528,6 +573,10 @@ export const useChatStore = defineStore("chat", {
       this.activeTab = "settings";
       this.selected = null;
       this.toast("资料已保存");
+    },
+    setTheme(theme) {
+      this.theme = theme;
+      localStorage.setItem("flowlink_theme", theme);
     },
     clearConversationUnread(type, id) {
       const collection = type === "group" ? this.groups : this.contacts;
@@ -560,6 +609,296 @@ export const useChatStore = defineStore("chat", {
       const type = message.conversationType === 2 || message.conversationType === "group" ? "group" : "private";
       if (type === "group") return message.groupId;
       return String(message.senderId) === String(this.me?.id) ? message.receiverId : message.senderId;
+    },
+    applyGroupMemberUpdate(payload) {
+      const groupId = payload.groupId;
+      const userId = payload.userId;
+      const nickname = payload.groupNickname || "";
+      const group = this.groups.find((item) => String(item.id) === String(groupId));
+      const member = group?.members?.find((item) => String(item.id) === String(userId));
+      if (member) member.groupNickname = nickname;
+      if (String(userId) === String(this.me?.id) && this.selected?.type === "group" && String(this.selected.id) === String(groupId)) {
+        this.toast(nickname ? "群昵称已同步" : "群昵称已清空");
+      }
+    },
+    sendRealtime(action, payload = {}) {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        this.toast("实时连接未建立，暂时不能发起视频通话");
+        return false;
+      }
+      this.ws.send(JSON.stringify({ action, payload }));
+      return true;
+    },
+    callPeerName(userId) {
+      return this.nameOf(userId);
+    },
+    async startVideoCall(targetId) {
+      if (!targetId) return;
+      if (this.selected?.type === "group") {
+        this.toast("当前版本先支持一对一局域网视频通话");
+        return;
+      }
+      if (this.call.visible && this.call.status !== "idle") {
+        this.toast("已有通话正在进行");
+        return;
+      }
+      const callId = `call_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      this.call = {
+        ...this.call,
+        visible: true,
+        status: "calling",
+        callId,
+        peerId: targetId,
+        peerName: this.callPeerName(targetId),
+        incoming: false,
+        mediaType: "video",
+        remoteStream: null,
+        muted: false,
+        cameraOff: false,
+        errorText: "",
+        iceQueue: []
+      };
+      try {
+        await this.startLocalMedia();
+      } catch (error) {
+        this.endCall(false);
+        this.toast(error.message || "无法打开摄像头或麦克风");
+        return;
+      }
+      this.sendRealtime("call_invite", { targetId, callId, mediaType: "video" });
+    },
+    async acceptCall() {
+      if (!this.call.incoming || !this.call.peerId) return;
+      this.call.status = "connecting";
+      this.call.errorText = "";
+      try {
+        await this.startLocalMedia();
+        this.sendRealtime("call_accept", {
+          targetId: this.call.peerId,
+          callId: this.call.callId,
+          mediaType: this.call.mediaType
+        });
+      } catch (error) {
+        this.sendRealtime("call_reject", {
+          targetId: this.call.peerId,
+          callId: this.call.callId,
+          reason: "media_denied"
+        });
+        this.endCall(false);
+        this.toast(error.message || "无法打开摄像头或麦克风");
+      }
+    },
+    rejectCall() {
+      if (this.call.peerId && this.call.callId) {
+        this.sendRealtime("call_reject", { targetId: this.call.peerId, callId: this.call.callId });
+      }
+      this.endCall(false);
+    },
+    hangupCall() {
+      if (this.call.peerId && this.call.callId) {
+        this.sendRealtime("call_hangup", { targetId: this.call.peerId, callId: this.call.callId });
+      }
+      this.endCall(false);
+    },
+    async startLocalMedia() {
+      if (this.call.localStream) return this.call.localStream;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("当前设备不支持摄像头/麦克风调用");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      this.call.localStream = markRaw(stream);
+      return stream;
+    },
+    async ensurePeerConnection() {
+      if (this.call.pc) return this.call.pc;
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      });
+      pc.onicecandidate = (event) => {
+        if (event.candidate && this.call.peerId) {
+          this.sendRealtime("call_ice", {
+            targetId: this.call.peerId,
+            callId: this.call.callId,
+            candidate: event.candidate.toJSON()
+          });
+        }
+      };
+      pc.ontrack = (event) => {
+        const [stream] = event.streams;
+        if (stream) this.call.remoteStream = markRaw(stream);
+      };
+      pc.onconnectionstatechange = () => {
+        if (["connected", "completed"].includes(pc.connectionState)) this.call.status = "active";
+        if (["failed", "disconnected"].includes(pc.connectionState)) this.call.errorText = "视频连接不稳定，请确认双方在同一局域网";
+        if (pc.connectionState === "closed") this.endCall(false);
+      };
+      const stream = await this.startLocalMedia();
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      this.call.pc = markRaw(pc);
+      await this.flushIceQueue();
+      return pc;
+    },
+    async createAndSendOffer() {
+      const pc = await this.ensurePeerConnection();
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      this.call.status = "connecting";
+      this.sendRealtime("call_offer", {
+        targetId: this.call.peerId,
+        callId: this.call.callId,
+        sdp: pc.localDescription
+      });
+    },
+    async answerOffer(sdp) {
+      const pc = await this.ensurePeerConnection();
+      await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      await this.flushIceQueue();
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      this.call.status = "connecting";
+      this.sendRealtime("call_answer", {
+        targetId: this.call.peerId,
+        callId: this.call.callId,
+        sdp: pc.localDescription
+      });
+    },
+    async applyAnswer(sdp) {
+      const pc = await this.ensurePeerConnection();
+      if (pc.signalingState !== "stable") {
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        await this.flushIceQueue();
+      }
+    },
+    async addRemoteIce(candidate) {
+      if (!candidate) return;
+      if (!this.call.pc || !this.call.pc.remoteDescription) {
+        this.call.iceQueue.push(candidate);
+        return;
+      }
+      await this.call.pc.addIceCandidate(new RTCIceCandidate(candidate));
+    },
+    async flushIceQueue() {
+      if (!this.call.pc || !this.call.pc.remoteDescription || !this.call.iceQueue.length) return;
+      const queue = [...this.call.iceQueue];
+      this.call.iceQueue = [];
+      for (const candidate of queue) {
+        await this.call.pc.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    },
+    async handleCallSignal(action, payload) {
+      try {
+        if (action === "call_unavailable" || action === "call_error") {
+          this.toast(payload.message || "视频通话暂不可用");
+          this.endCall(false);
+          return;
+        }
+        if (action === "call_ringing") {
+          this.call.status = "ringing";
+          return;
+        }
+        if (action === "call_invite") {
+          if (this.call.visible && this.call.status !== "idle") {
+            this.sendRealtime("call_reject", {
+              targetId: payload.fromUserId,
+              callId: payload.callId,
+              reason: "busy"
+            });
+            return;
+          }
+          this.call = {
+            ...this.call,
+            visible: true,
+            status: "incoming",
+            callId: payload.callId,
+            peerId: payload.fromUserId,
+            peerName: this.callPeerName(payload.fromUserId),
+            incoming: true,
+            mediaType: payload.mediaType || "video",
+            localStream: null,
+            remoteStream: null,
+            pc: null,
+            muted: false,
+            cameraOff: false,
+            errorText: "",
+            iceQueue: []
+          };
+          return;
+        }
+        if (payload.callId && this.call.callId && payload.callId !== this.call.callId) return;
+        if (action === "call_accept") {
+          this.call.status = "connecting";
+          await this.createAndSendOffer();
+          return;
+        }
+        if (action === "call_reject") {
+          this.toast("对方已拒绝视频通话");
+          this.endCall(false);
+          return;
+        }
+        if (action === "call_cancel" || action === "call_hangup") {
+          this.toast("视频通话已结束");
+          this.endCall(false);
+          return;
+        }
+        if (action === "call_offer") {
+          this.call.status = "connecting";
+          await this.answerOffer(payload.sdp);
+          return;
+        }
+        if (action === "call_answer") {
+          await this.applyAnswer(payload.sdp);
+          return;
+        }
+        if (action === "call_ice") {
+          await this.addRemoteIce(payload.candidate);
+        }
+      } catch (error) {
+        this.call.errorText = error.message || "视频通话连接失败";
+        this.toast(this.call.errorText);
+      }
+    },
+    toggleCallMic() {
+      const stream = this.call.localStream;
+      if (!stream) return;
+      this.call.muted = !this.call.muted;
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = !this.call.muted;
+      });
+    },
+    toggleCallCamera() {
+      const stream = this.call.localStream;
+      if (!stream) return;
+      this.call.cameraOff = !this.call.cameraOff;
+      stream.getVideoTracks().forEach((track) => {
+        track.enabled = !this.call.cameraOff;
+      });
+    },
+    endCall(notifyPeer = false) {
+      if (notifyPeer && this.call.peerId && this.call.callId) {
+        this.sendRealtime("call_hangup", { targetId: this.call.peerId, callId: this.call.callId });
+      }
+      try { this.call.pc?.close(); } catch {}
+      this.call.localStream?.getTracks?.().forEach((track) => track.stop());
+      this.call.remoteStream?.getTracks?.().forEach((track) => track.stop());
+      this.call = {
+        visible: false,
+        status: "idle",
+        callId: "",
+        peerId: null,
+        peerName: "",
+        incoming: false,
+        mediaType: "video",
+        localStream: null,
+        remoteStream: null,
+        pc: null,
+        muted: false,
+        cameraOff: false,
+        errorText: "",
+        iceQueue: []
+      };
     }
   }
 });

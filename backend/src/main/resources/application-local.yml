@@ -28,6 +28,12 @@ flowlink:
     secret-key: minioadmin
     bucket: flowlink
     public-base-url: http://localhost:9000/flowlink
+  ai:
+    enabled: true
+    assistant-user-id: 9001
+    base-url: ${FLOWLINK_AI_BASE_URL:https://api.openai.com/v1/chat/completions}
+    api-key: ${FLOWLINK_AI_API_KEY:}
+    model: ${FLOWLINK_AI_MODEL:gpt-4o-mini}
 
 mybatis:
   configuration:

@@ -139,3 +139,4 @@ http://localhost:8080/api/realtime/status
 ```text
 Ctrl + F5
 ```
+AI 助手使用说明见：[AI_ASSISTANT.md](AI_ASSISTANT.md)

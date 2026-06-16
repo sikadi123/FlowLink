@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ArrowLeft, Ban, Crown, DoorOpen, Download, Eye, FileText, Image, Info, Laugh, MessageSquareQuote, Paperclip, RotateCcw, Search, SendHorizontal, Shield, ShieldOff, Trash2, UserMinus, Volume2, VolumeX, X } from "@lucide/vue";
-import { avatarText, entitySubtitle, entityTitle, formatFileSize, formatTime, mediaUrl } from "../utils/display";
+import { ArrowLeft, Ban, Crown, DoorOpen, Download, Eye, FileAudio, FileText, Image, Info, Laugh, Mic, MessageSquareQuote, Paperclip, RotateCcw, Search, SendHorizontal, Shield, ShieldOff, Square, Trash2, UserMinus, Video, Volume2, VolumeX, X } from "@lucide/vue";
+import { avatarText, entitySubtitle, entityTitle, formatFileSize, formatTime, mediaUrl, roleLabel } from "../utils/display";
 
 const props = defineProps({
   me: { type: Object, required: true },
@@ -12,7 +12,7 @@ const props = defineProps({
   nameOf: { type: Function, default: (id) => `用户 ${id}` }
 });
 
-const emit = defineEmits(["back", "sendText", "sendReply", "sendFile", "recallMessage", "deleteMessage", "loadEarlier", "updateGroup", "inviteGroupMembers", "removeGroupMember", "setGroupAdmin", "setGroupMute", "transferGroupOwner", "leaveGroup", "dissolveGroup", "deleteFriend", "blockFriend"]);
+const emit = defineEmits(["back", "sendText", "sendReply", "sendFile", "sendVoice", "recallMessage", "deleteMessage", "loadEarlier", "updateGroup", "updateMyGroupNickname", "inviteGroupMembers", "removeGroupMember", "setGroupAdmin", "setGroupMute", "transferGroupOwner", "leaveGroup", "dissolveGroup", "deleteFriend", "blockFriend", "startVideoCall"]);
 const draft = ref("");
 const messageBox = ref(null);
 const messageKeyword = ref("");
@@ -22,8 +22,10 @@ const emojiOpen = ref(false);
 const replyTarget = ref(null);
 const messageMenu = reactive({ open: false, x: 0, y: 0, message: null });
 const groupForm = reactive({ name: "", notice: "", description: "", muteAll: false });
+const nicknameForm = reactive({ value: "" });
 const inviteIds = ref([]);
 const transferTargetId = ref("");
+const recording = reactive({ active: false, startedAt: 0, recorder: null, chunks: [] });
 const emojis = ["😀", "😂", "😊", "👍", "🎉", "❤️", "👌", "🙏", "🔥", "🤝", "😎", "😢"];
 
 const subtitle = computed(() => props.entity ? entitySubtitle(props.entity) : "从左侧选择一个会话开始沟通");
@@ -36,6 +38,7 @@ const fileMessages = computed(() => props.messages.filter((message) => message.m
 const myGroupMember = computed(() => props.entity?.members?.find((member) => String(member.id) === String(props.me.id)));
 const canManageGroup = computed(() => props.selected?.type === "group" && Number(myGroupMember.value?.groupRole ?? -1) >= 1);
 const isGroupOwner = computed(() => props.selected?.type === "group" && String(props.entity?.ownerId) === String(props.me.id));
+const canVideoCall = computed(() => props.selected?.type === "private" && props.entity?.id);
 const inviteCandidates = computed(() => {
   const memberIds = new Set((props.entity?.members || []).map((member) => String(member.id)));
   return props.contacts.filter((contact) => !memberIds.has(String(contact.id)));
@@ -56,6 +59,7 @@ watch(
     groupForm.notice = props.entity?.notice || "";
     groupForm.description = props.entity?.description || "";
     groupForm.muteAll = Boolean(props.entity?.muteAll);
+    nicknameForm.value = myGroupMember.value?.groupNickname || "";
     inviteIds.value = [];
     transferTargetId.value = "";
   },
@@ -80,6 +84,42 @@ function chooseFile(event) {
   event.target.value = "";
 }
 
+async function toggleRecording() {
+  if (recording.active) {
+    recording.recorder?.stop();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    window.alert("当前浏览器不支持录音，请使用最新版 Chrome 或 Edge。");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "" });
+    recording.chunks = [];
+    recording.recorder = recorder;
+    recording.startedAt = Date.now();
+    recording.active = true;
+    recorder.ondataavailable = (event) => {
+      if (event.data?.size) recording.chunks.push(event.data);
+    };
+    recorder.onstop = () => {
+      const duration = Math.max(1, Math.round((Date.now() - recording.startedAt) / 1000));
+      const blob = new Blob(recording.chunks, { type: recorder.mimeType || "audio/webm" });
+      const file = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type });
+      stream.getTracks().forEach((track) => track.stop());
+      recording.active = false;
+      recording.recorder = null;
+      recording.chunks = [];
+      emit("sendVoice", file, duration);
+    };
+    recorder.start();
+  } catch {
+    recording.active = false;
+    window.alert("无法访问麦克风，请检查浏览器权限。");
+  }
+}
+
 function messageUrl(message) {
   return mediaUrl(message.fileUrl || message.content || "");
 }
@@ -88,9 +128,19 @@ function isImageMessage(message) {
   return message.messageType === 2 || message.messageType === "image" || String(message.fileType || "").startsWith("image/");
 }
 
+function isVoiceMessage(message) {
+  return message.messageType === 4 || message.messageType === "voice" || String(message.fileType || "").startsWith("audio/");
+}
+
 function fileTitle(message) {
   if (message.fileName) return message.fileName;
+  if (isVoiceMessage(message)) return "语音消息";
   return isImageMessage(message) ? "聊天图片" : "文件";
+}
+
+function saveNickname() {
+  if (!props.entity?.id) return;
+  emit("updateMyGroupNickname", props.entity.id, nicknameForm.value.trim());
 }
 
 function canRecall(message) {
@@ -236,6 +286,15 @@ function transferOwner() {
         <Search />
         <input v-model="messageKeyword" placeholder="搜索当前会话" />
       </label>
+      <button
+        v-if="canVideoCall"
+        class="icon-btn call-entry-btn"
+        type="button"
+        title="局域网视频通话"
+        @click="$emit('startVideoCall', entity.id)"
+      >
+        <Video />
+      </button>
       <button class="icon-btn" type="button" title="会话信息" @click="detailsOpen = !detailsOpen">
         <Info />
       </button>
@@ -268,6 +327,14 @@ function transferOwner() {
           >
             <img :src="messageUrl(message)" alt="聊天图片" />
           </button>
+          <div
+            v-else-if="isVoiceMessage(message)"
+            class="bubble voice-message"
+          >
+            <FileAudio />
+            <audio :src="messageUrl(message)" controls preload="metadata"></audio>
+            <small>{{ message.voiceDuration ? `${message.voiceDuration}s` : '语音' }}</small>
+          </div>
           <div
             v-else-if="message.messageType === 3 || message.messageType === 'file'"
             class="bubble file-message"
@@ -349,6 +416,14 @@ function transferOwner() {
 
       <div v-if="selected.type === 'group'" class="detail-section group-admin-panel">
         <strong>群聊管理</strong>
+        <div class="mini-section group-nickname-editor">
+          <strong>我的群昵称</strong>
+          <div class="nickname-row">
+            <input v-model="nicknameForm.value" placeholder="设置你在本群中的昵称" />
+            <button class="panel-secondary" type="button" @click="saveNickname">保存</button>
+          </div>
+          <p class="muted-text">群昵称只在当前群聊内展示，不会修改账号名。</p>
+        </div>
         <template v-if="canManageGroup">
           <label>
             <span>群名称</span>
@@ -398,7 +473,8 @@ function transferOwner() {
             <div>
               <strong>{{ entityTitle(member) }}</strong>
               <span>
-                {{ member.groupRole === 2 ? '群主' : member.groupRole === 1 ? '管理员' : '成员' }}
+                <em class="role-badge" :class="`role-${member.groupRole || 0}`">{{ roleLabel(member.groupRole) }}</em>
+                <template v-if="member.username"> · @{{ member.username }}</template>
                 <template v-if="member.muted"> · 已禁言</template>
               </span>
             </div>
@@ -497,6 +573,10 @@ function transferOwner() {
       </div>
       <button class="icon-btn" type="button" title="表情" @click="emojiOpen = !emojiOpen">
         <Laugh />
+      </button>
+      <button class="icon-btn" :class="{ recording: recording.active }" type="button" :title="recording.active ? '停止录音' : '发送语音'" @click="toggleRecording">
+        <Square v-if="recording.active" />
+        <Mic v-else />
       </button>
       <label class="icon-btn" title="发送文件">
         <Paperclip />
