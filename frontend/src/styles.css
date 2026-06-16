@@ -88,6 +88,26 @@ input:focus, textarea:focus { border-color: rgba(7, 193, 96, .55); box-shadow: 0
   color: var(--green-dark);
   box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
 }
+.server-box {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 10px;
+  align-items: end;
+}
+.server-box label {
+  display: grid;
+  gap: 7px;
+  color: #344054;
+  font-size: 13px;
+}
+.server-box button {
+  min-height: 42px;
+  border-radius: 7px;
+  background: #eef2f6;
+  color: #344054;
+  font-weight: 700;
+}
 .auth-form { display: grid; gap: 14px; margin-top: 28px; }
 .auth-form label, .profile-grid label { display: grid; gap: 7px; color: #344054; font-size: 13px; }
 .auth-form button, .profile-grid button, .send-btn {
@@ -1568,11 +1588,242 @@ input:focus, textarea:focus { border-color: rgba(7, 193, 96, .55); box-shadow: 0
 }
 
 @media (max-width: 760px) {
-  .workspace { grid-template-columns: 68px 1fr; }
-  .sidebar { display: none; }
-  .profile-header { grid-template-columns: 54px minmax(0, 1fr); }
-  .profile-save-top { grid-column: 1 / -1; }
-  .profile-fields { grid-template-columns: 1fr; }
-  .composer { grid-template-columns: 42px 42px 42px 1fr; }
-  .send-btn { grid-column: 1 / -1; justify-content: center; }
+  body { background: var(--panel); }
+  .auth-panel {
+    width: min(100vw - 24px, 440px);
+    padding: 24px;
+  }
+  .server-box {
+    grid-template-columns: 1fr;
+  }
+  .workspace {
+    height: 100dvh;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 66px;
+    overflow: hidden;
+  }
+  .rail {
+    grid-row: 2;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1fr;
+    gap: 0;
+    padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    border-right: 0;
+  }
+  .rail-brand,
+  .rail-status,
+  .rail-user-box {
+    display: none;
+  }
+  .rail-nav {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+  }
+  .rail-nav button {
+    width: 100%;
+    min-height: 54px;
+    border-radius: 10px;
+  }
+  .rail-nav button.active::before {
+    left: 50%;
+    top: auto;
+    bottom: 2px;
+    width: 22px;
+    height: 3px;
+    transform: translateX(-50%);
+  }
+  .rail-badge { right: 24%; top: 4px; }
+  .sidebar {
+    grid-row: 1;
+    display: flex;
+    min-height: 0;
+    border-right: 0;
+  }
+  .main-panel {
+    grid-row: 1;
+    height: auto;
+    min-height: 0;
+    grid-template-rows: 64px minmax(0, 1fr) auto;
+  }
+  .workspace.tab-chats:not(.has-selected) .main-panel {
+    display: none;
+  }
+  .workspace.tab-chats.has-selected .sidebar {
+    display: none;
+  }
+  .workspace.tab-contacts .sidebar,
+  .workspace.tab-notifications .sidebar,
+  .workspace.tab-settings .sidebar {
+    display: none;
+  }
+  .workspace.tab-contacts .main-panel,
+  .workspace.tab-notifications .main-panel,
+  .workspace.tab-settings .main-panel {
+    display: grid;
+  }
+  .sidebar-header {
+    min-height: 72px;
+    padding: 14px 16px 10px;
+  }
+  .sidebar-header h2 { font-size: 20px; }
+  .search-box,
+  .sidebar-tabs,
+  .conversation-summary {
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+  .list,
+  .directory-sidebar-list {
+    padding-bottom: 88px;
+  }
+  .chat-header {
+    min-height: 64px;
+    grid-template-columns: 40px 40px minmax(0, 1fr) 40px;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .chat-header > div:nth-of-type(2) {
+    min-width: 0;
+  }
+  .chat-header h2,
+  .chat-header p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-back-btn {
+    display: grid;
+  }
+  .message-search {
+    display: none;
+  }
+  .messages {
+    padding: 14px 12px;
+  }
+  .message-stack {
+    max-width: min(78vw, 620px);
+  }
+  .message-avatar {
+    width: 30px;
+    height: 30px;
+  }
+  .bubble {
+    font-size: 14px;
+  }
+  .image-message img {
+    max-width: 62vw;
+    max-height: 240px;
+  }
+  .file-message {
+    min-width: min(72vw, 320px);
+  }
+  .composer {
+    grid-template-columns: 40px 40px 40px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  }
+  .composer textarea {
+    min-height: 42px;
+    max-height: 96px;
+    padding: 9px 10px;
+  }
+  .send-btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+  .chat-body.details-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .chat-details {
+    display: none;
+  }
+  .page-header,
+  .profile-header,
+  .notification-page .page-header,
+  .notification-header {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .profile-header .avatar.large,
+  .notification-header .avatar.large {
+    width: 48px;
+    height: 48px;
+  }
+  .profile-save-top {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .profile-layout {
+    padding: 14px;
+    gap: 14px;
+  }
+  .profile-card,
+  .profile-section {
+    padding: 16px;
+  }
+  .profile-fields {
+    grid-template-columns: 1fr;
+  }
+  .profile-submit,
+  .avatar-upload-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .directory-grid,
+  .directory-workbench {
+    padding: 14px;
+    grid-template-columns: 1fr;
+  }
+  .notification-header-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .mark-read-btn,
+  .delete-all-btn {
+    justify-content: center;
+  }
+  .notification-list {
+    width: 100%;
+    padding: 14px;
+    padding-bottom: 88px;
+  }
+  .notification-item {
+    grid-template-columns: 42px minmax(0, 1fr) 36px;
+    gap: 10px;
+    min-height: 84px;
+    padding: 14px;
+  }
+  .notification-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .context-menu,
+  .message-context-menu {
+    max-width: calc(100vw - 24px);
+  }
+}
+
+.mobile-back-btn {
+  display: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef2f6;
+  color: #344054;
+}
+.mobile-back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 760px) {
+  .mobile-back-btn {
+    display: grid;
+  }
 }

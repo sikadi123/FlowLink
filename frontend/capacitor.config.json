@@ -1,0 +1,12 @@
+{
+  "appId": "com.flowlink.app",
+  "appName": "FlowLink",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

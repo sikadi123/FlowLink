@@ -41,7 +41,14 @@ async function searchUsers(keyword) {
 
   <AuthView v-if="!store.me" />
 
-  <main v-else class="workspace" :class="{ 'surface-mode': store.surfaceMode }">
+  <main
+    v-else
+    class="workspace"
+    :class="[
+      { 'surface-mode': store.surfaceMode, 'has-selected': !!store.selected },
+      `tab-${store.activeTab}`
+    ]"
+  >
     <AppRail
       :me="store.me"
       :active-tab="store.activeTab"
@@ -112,6 +119,7 @@ async function searchUsers(keyword) {
         @send-file="store.uploadAndSend"
         @recall-message="store.recallMessage"
         @delete-message="store.deleteMessage"
+        @back="store.closeConversation"
         @load-earlier="store.loadEarlierMessages"
         @update-group="store.updateGroup"
         @invite-group-members="store.inviteGroupMembers"

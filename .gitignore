@@ -12,6 +12,7 @@
 
 # Package Files #
 *.jar
+!frontend/android/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
@@ -28,6 +29,18 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+# Android / Capacitor generated local files
+frontend/android/.gradle/
+frontend/android/**/build/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/captures/
+frontend/android/app/release/
+frontend/android/app/debug/
+frontend/android/*.iml
+frontend/android/**/.cxx/
+frontend/android/**/outputs/
 
 # Java / Maven generated files
 target/

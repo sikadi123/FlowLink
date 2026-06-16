@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { request } from "../api/http";
+import { getRealtimeBase, request } from "../api/http";
 
 export const useChatStore = defineStore("chat", {
   state: () => ({
@@ -302,6 +302,11 @@ export const useChatStore = defineStore("chat", {
       this.messages = await request(`/api/messages/history?type=${encodeURIComponent(type)}&targetId=${encodeURIComponent(id)}`);
       this.clearConversationUnread(type, id);
     },
+    closeConversation() {
+      this.selected = null;
+      this.messages = [];
+      localStorage.removeItem("flowlink_selected");
+    },
     async loadEarlierMessages() {
       if (!this.selected || !this.messages.length) return 0;
       const firstId = this.messages.find((item) => item.id)?.id;
@@ -347,8 +352,7 @@ export const useChatStore = defineStore("chat", {
       window.clearInterval(this.heartbeatTimer);
       window.clearTimeout(this.bootstrapTimer);
       this.connectionStatus = "connecting";
-      const protocol = location.protocol === "https:" ? "wss" : "ws";
-      const wsBase = `${protocol}://${location.hostname}:8090/ws?token=${encodeURIComponent(this.token)}`;
+      const wsBase = `${getRealtimeBase()}/ws?token=${encodeURIComponent(this.token)}`;
       this.ws = new WebSocket(wsBase);
       const openTimer = window.setTimeout(() => {
         if (this.ws?.readyState !== WebSocket.OPEN) {

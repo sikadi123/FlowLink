@@ -1,3 +1,5 @@
+import { resolveUrl } from "../api/http";
+
 export function avatarText(item) {
   return (item?.displayName || item?.name || item?.username || "F").slice(0, 1).toUpperCase();
 }
@@ -9,7 +11,7 @@ export function avatarStyle(item) {
 
 export function avatarImage(item) {
   const value = item?.avatarUrl || "";
-  return value && !value.startsWith("linear-gradient") ? value : "";
+  return value && !value.startsWith("linear-gradient") ? resolveUrl(value) : "";
 }
 
 export function entityTitle(item) {
@@ -44,4 +46,8 @@ export function formatFileSize(bytes) {
 
 export function conversationTime(item) {
   return formatTime(item?.lastMessage?.sendTime || item?.lastMessage?.createdAt);
+}
+
+export function mediaUrl(value) {
+  return resolveUrl(value || "");
 }

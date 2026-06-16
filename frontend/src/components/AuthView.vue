@@ -1,10 +1,12 @@
 <script setup>
 import { computed, reactive, ref } from "vue";
+import { getServerBase, setServerBase } from "../api/http";
 import { useChatStore } from "../stores/chatStore";
 
 const store = useChatStore();
 const mode = ref("login");
 const submitting = ref(false);
+const serverForm = reactive({ baseUrl: getServerBase() });
 
 const loginForm = reactive({
   account: "linche",
@@ -23,6 +25,11 @@ const isLogin = computed(() => mode.value === "login");
 
 function switchMode(nextMode) {
   mode.value = nextMode;
+}
+
+function saveServerBase() {
+  setServerBase(serverForm.baseUrl);
+  store.toast(serverForm.baseUrl.trim() ? "服务器地址已保存" : "已恢复默认服务器地址");
 }
 
 async function login() {
@@ -79,21 +86,17 @@ async function register() {
         </div>
       </div>
 
+      <div class="server-box">
+        <label>
+          <span>服务器地址</span>
+          <input v-model.trim="serverForm.baseUrl" placeholder="例如 http://192.168.1.23:8080" />
+        </label>
+        <button type="button" @click="saveServerBase">保存</button>
+      </div>
+
       <div class="auth-tabs" role="tablist" aria-label="账号入口">
-        <button
-          type="button"
-          :class="{ active: isLogin }"
-          @click="switchMode('login')"
-        >
-          登录
-        </button>
-        <button
-          type="button"
-          :class="{ active: !isLogin }"
-          @click="switchMode('register')"
-        >
-          注册
-        </button>
+        <button type="button" :class="{ active: isLogin }" @click="switchMode('login')">登录</button>
+        <button type="button" :class="{ active: !isLogin }" @click="switchMode('register')">注册</button>
       </div>
 
       <form v-if="isLogin" class="auth-form" @submit.prevent="login">
@@ -133,7 +136,7 @@ async function register() {
       </form>
 
       <div class="demo-account">
-        演示账号：linche / flowlink123。也可以直接注册新账号体验。
+        演示账号：linche / flowlink123。Android App 首次使用时请先填写服务器地址。
       </div>
     </section>
   </main>

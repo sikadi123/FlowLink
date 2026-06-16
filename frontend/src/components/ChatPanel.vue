@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { Ban, Crown, DoorOpen, Download, Eye, FileText, Image, Info, Laugh, MessageSquareQuote, Paperclip, RotateCcw, Search, SendHorizontal, Shield, ShieldOff, Trash2, UserMinus, Volume2, VolumeX, X } from "@lucide/vue";
-import { avatarText, entitySubtitle, entityTitle, formatFileSize, formatTime } from "../utils/display";
+import { ArrowLeft, Ban, Crown, DoorOpen, Download, Eye, FileText, Image, Info, Laugh, MessageSquareQuote, Paperclip, RotateCcw, Search, SendHorizontal, Shield, ShieldOff, Trash2, UserMinus, Volume2, VolumeX, X } from "@lucide/vue";
+import { avatarText, entitySubtitle, entityTitle, formatFileSize, formatTime, mediaUrl } from "../utils/display";
 
 const props = defineProps({
   me: { type: Object, required: true },
@@ -12,7 +12,7 @@ const props = defineProps({
   nameOf: { type: Function, default: (id) => `用户 ${id}` }
 });
 
-const emit = defineEmits(["sendText", "sendReply", "sendFile", "recallMessage", "deleteMessage", "loadEarlier", "updateGroup", "inviteGroupMembers", "removeGroupMember", "setGroupAdmin", "setGroupMute", "transferGroupOwner", "leaveGroup", "dissolveGroup", "deleteFriend", "blockFriend"]);
+const emit = defineEmits(["back", "sendText", "sendReply", "sendFile", "recallMessage", "deleteMessage", "loadEarlier", "updateGroup", "inviteGroupMembers", "removeGroupMember", "setGroupAdmin", "setGroupMute", "transferGroupOwner", "leaveGroup", "dissolveGroup", "deleteFriend", "blockFriend"]);
 const draft = ref("");
 const messageBox = ref(null);
 const messageKeyword = ref("");
@@ -81,7 +81,7 @@ function chooseFile(event) {
 }
 
 function messageUrl(message) {
-  return message.fileUrl || message.content || "";
+  return mediaUrl(message.fileUrl || message.content || "");
 }
 
 function isImageMessage(message) {
@@ -224,6 +224,9 @@ function transferOwner() {
 
   <template v-else>
     <header class="chat-header">
+      <button class="mobile-back-btn" type="button" title="返回会话列表" @click="$emit('back')">
+        <ArrowLeft />
+      </button>
       <div class="avatar" :class="{ group: selected.type === 'group' }">{{ avatarText(entity) }}</div>
       <div>
         <h2>{{ entityTitle(entity) }}</h2>
