@@ -44,6 +44,37 @@ const inviteCandidates = computed(() => {
   return props.contacts.filter((contact) => !memberIds.has(String(contact.id)));
 });
 
+function groupMemberOf(userId) {
+  if (props.selected?.type !== "group") return null;
+  return props.entity?.members?.find((member) => String(member.id) === String(userId)) || null;
+}
+
+function groupDisplayName(userId) {
+  const member = groupMemberOf(userId);
+  if (!member) return "";
+  return member.groupNickname || member.displayName || member.username || `用户 ${userId}`;
+}
+
+function messageSenderName(userId) {
+  if (props.selected?.type === "group") return groupDisplayName(userId) || nameOf(userId);
+  return nameOf(userId);
+}
+
+function messageRole(message) {
+  return groupMemberOf(message.senderId)?.groupRole ?? null;
+}
+
+function showMessageRole(message) {
+  return props.selected?.type === "group" && Number(messageRole(message)) > 0;
+}
+
+function messageRoleLabel(message) {
+  const role = Number(messageRole(message));
+  if (role === 2) return "群主";
+  if (role === 1) return "管理员";
+  return "";
+}
+
 watch(
   () => props.messages.length,
   async () => {
@@ -310,14 +341,21 @@ function transferOwner() {
         :class="{ mine: String(message.senderId) === String(me.id) }"
         @contextmenu.prevent="openMessageMenu($event, message)"
       >
-        <div class="message-avatar">{{ avatarText({ displayName: nameOf(message.senderId) }) }}</div>
+        <div class="message-avatar">{{ avatarText({ displayName: messageSenderName(message.senderId) }) }}</div>
         <div class="message-stack">
           <small>
-            <span>{{ String(message.senderId) === String(me.id) ? '我' : nameOf(message.senderId) }}</span>
+            <span>{{ String(message.senderId) === String(me.id) ? '我' : messageSenderName(message.senderId) }}</span>
+            <em
+              v-if="showMessageRole(message)"
+              class="message-role-badge"
+              :class="`role-${messageRole(message)}`"
+            >
+              {{ messageRoleLabel(message) }}
+            </em>
             <time>{{ formatTime(message.sendTime || message.createdAt) }}</time>
           </small>
           <div v-if="message.recalled" class="recalled-message">
-            {{ String(message.senderId) === String(me.id) ? '你撤回了一条消息' : `${nameOf(message.senderId)} 撤回了一条消息` }}
+            {{ String(message.senderId) === String(me.id) ? '你撤回了一条消息' : `${messageSenderName(message.senderId)} 撤回了一条消息` }}
           </div>
           <button
             v-else-if="isImageMessage(message)"
@@ -565,7 +603,7 @@ function transferOwner() {
     <footer class="composer">
       <div v-if="replyTarget" class="reply-strip">
         <MessageSquareQuote />
-        <span>回复 {{ nameOf(replyTarget.senderId) }}：{{ replyTarget.content || '[消息]' }}</span>
+        <span>回复 {{ messageSenderName(replyTarget.senderId) }}：{{ replyTarget.content || '[消息]' }}</span>
         <button type="button" title="取消回复" @click="replyTarget = null"><X /></button>
       </div>
       <div v-if="emojiOpen" class="emoji-panel">

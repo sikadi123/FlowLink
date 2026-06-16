@@ -4,7 +4,7 @@ import { getRealtimeBase, request } from "../api/http";
 
 export const useChatStore = defineStore("chat", {
   state: () => ({
-    token: localStorage.getItem("flowlink_token") || "",
+    token: localStorage.getItem("flowlink_remember_login") === "true" ? localStorage.getItem("flowlink_token") || "" : "",
     lastSelected: JSON.parse(localStorage.getItem("flowlink_selected") || "null"),
     me: null,
     contacts: [],
@@ -14,6 +14,8 @@ export const useChatStore = defineStore("chat", {
     pinnedConversations: JSON.parse(localStorage.getItem("flowlink_pinned") || "[]"),
     hiddenConversations: JSON.parse(localStorage.getItem("flowlink_hidden") || "[]"),
     theme: localStorage.getItem("flowlink_theme") || "wechat",
+    chatBackground: localStorage.getItem("flowlink_chat_background") || "soft",
+    chatWallpaperUrl: localStorage.getItem("flowlink_chat_wallpaper") || "",
     activeTab: "chats",
     selected: null,
     messages: [],
@@ -80,23 +82,37 @@ export const useChatStore = defineStore("chat", {
       window.clearTimeout(this._toastTimer);
       this._toastTimer = window.setTimeout(() => (this.toastText = ""), 2200);
     },
-    async login(account, password) {
+    async login(account, password, remember = false) {
       const data = await request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ account, password })
       });
       this.token = data.token;
-      localStorage.setItem("flowlink_token", data.token);
+      sessionStorage.setItem("flowlink_session_token", data.token);
+      if (remember) {
+        localStorage.setItem("flowlink_token", data.token);
+        localStorage.setItem("flowlink_remember_login", "true");
+      } else {
+        localStorage.removeItem("flowlink_token");
+        localStorage.removeItem("flowlink_remember_login");
+      }
       await this.bootstrap();
       this.connectRealtime();
     },
-    async register(form) {
+    async register(form, remember = false) {
       const data = await request("/api/auth/register", {
         method: "POST",
         body: JSON.stringify(form)
       });
       this.token = data.token;
-      localStorage.setItem("flowlink_token", data.token);
+      sessionStorage.setItem("flowlink_session_token", data.token);
+      if (remember) {
+        localStorage.setItem("flowlink_token", data.token);
+        localStorage.setItem("flowlink_remember_login", "true");
+      } else {
+        localStorage.removeItem("flowlink_token");
+        localStorage.removeItem("flowlink_remember_login");
+      }
       await this.bootstrap();
       this.connectRealtime();
       this.toast("注册成功，欢迎加入 FlowLink");
@@ -114,7 +130,9 @@ export const useChatStore = defineStore("chat", {
         this.ws.close();
       }
       localStorage.removeItem("flowlink_token");
+      localStorage.removeItem("flowlink_remember_login");
       localStorage.removeItem("flowlink_selected");
+      sessionStorage.removeItem("flowlink_session_token");
       this.token = "";
       this.lastSelected = null;
       this.me = null;
@@ -151,6 +169,14 @@ export const useChatStore = defineStore("chat", {
         if (member) return member.groupNickname || member.displayName || member.username || "成员";
       }
       return `用户 ${userId}`;
+    },
+    nameInCurrentConversation(userId) {
+      if (this.selected?.type === "group") {
+        const group = this.groups.find((item) => String(item.id) === String(this.selected.id));
+        const member = group?.members?.find((item) => String(item.id) === String(userId));
+        if (member) return member.groupNickname || member.displayName || member.username || `用户 ${userId}`;
+      }
+      return this.nameOf(userId);
     },
     async searchUsers(keyword) {
       if (!keyword.trim()) return [];
@@ -534,7 +560,7 @@ export const useChatStore = defineStore("chat", {
       await this.sendMessage(content, 1);
     },
     async sendReply(content, replyTo) {
-      const prefix = replyTo ? `回复 ${this.nameOf(replyTo.senderId)}：${replyTo.content || "[消息]"}\n` : "";
+      const prefix = replyTo ? `回复 ${this.nameInCurrentConversation(replyTo.senderId)}：${replyTo.content || "[消息]"}\n` : "";
       await this.sendMessage(`${prefix}${content}`, 1);
     },
     async uploadAndSend(file) {
@@ -577,6 +603,24 @@ export const useChatStore = defineStore("chat", {
     setTheme(theme) {
       this.theme = theme;
       localStorage.setItem("flowlink_theme", theme);
+    },
+    setChatBackground(background) {
+      this.chatBackground = background || "soft";
+      localStorage.setItem("flowlink_chat_background", this.chatBackground);
+    },
+    setChatWallpaperUrl(url) {
+      this.chatWallpaperUrl = url || "";
+      if (this.chatWallpaperUrl) {
+        localStorage.setItem("flowlink_chat_wallpaper", this.chatWallpaperUrl);
+      } else {
+        localStorage.removeItem("flowlink_chat_wallpaper");
+      }
+    },
+    async uploadChatBackground(file) {
+      const url = await this.uploadAvatar(file);
+      this.setChatWallpaperUrl(url);
+      this.setChatBackground("custom");
+      return url;
     },
     clearConversationUnread(type, id) {
       const collection = type === "group" ? this.groups : this.contacts;

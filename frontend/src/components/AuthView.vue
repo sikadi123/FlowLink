@@ -9,8 +9,9 @@ const submitting = ref(false);
 const serverForm = reactive({ baseUrl: getServerBase() });
 
 const loginForm = reactive({
-  account: "linche",
-  password: "flowlink123"
+  account: "",
+  password: "",
+  remember: false
 });
 
 const registerForm = reactive({
@@ -18,7 +19,8 @@ const registerForm = reactive({
   displayName: "",
   email: "",
   password: "",
-  confirmPassword: ""
+  confirmPassword: "",
+  remember: false
 });
 
 const isLogin = computed(() => mode.value === "login");
@@ -34,9 +36,13 @@ function saveServerBase() {
 
 async function login() {
   if (submitting.value) return;
+  if (!loginForm.account.trim() || !loginForm.password) {
+    store.toast("请输入账号和密码");
+    return;
+  }
   submitting.value = true;
   try {
-    await store.login(loginForm.account, loginForm.password);
+    await store.login(loginForm.account, loginForm.password, loginForm.remember);
   } catch (error) {
     store.toast(error.message || "登录失败");
   } finally {
@@ -66,7 +72,7 @@ async function register() {
       displayName: registerForm.displayName,
       email: registerForm.email,
       password: registerForm.password
-    });
+    }, registerForm.remember);
   } catch (error) {
     store.toast(error.message || "注册失败");
   } finally {
@@ -108,6 +114,10 @@ async function register() {
           <span>密码</span>
           <input v-model="loginForm.password" placeholder="请输入密码" type="password" autocomplete="current-password" />
         </label>
+        <label class="remember-row">
+          <input v-model="loginForm.remember" type="checkbox" />
+          <span>下次自动登录</span>
+        </label>
         <button type="submit" :disabled="submitting">{{ submitting ? "登录中..." : "登录" }}</button>
       </form>
 
@@ -131,6 +141,10 @@ async function register() {
         <label>
           <span>确认密码</span>
           <input v-model="registerForm.confirmPassword" placeholder="再次输入密码" type="password" autocomplete="new-password" />
+        </label>
+        <label class="remember-row">
+          <input v-model="registerForm.remember" type="checkbox" />
+          <span>下次自动登录</span>
         </label>
         <button type="submit" :disabled="submitting">{{ submitting ? "注册中..." : "创建账号" }}</button>
       </form>

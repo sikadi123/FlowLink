@@ -1,18 +1,32 @@
 <script setup>
-import { computed, ref } from "vue";
-import { BriefcaseBusiness, CheckCircle2, ImagePlus, Mail, MapPin, Phone, Sparkles, UserRound } from "@lucide/vue";
+import { computed, ref, watch } from "vue";
+import { BriefcaseBusiness, CheckCircle2, ImagePlus, LogOut, Mail, MapPin, Palette, Phone, Sparkles, UserRound, Wallpaper } from "@lucide/vue";
 import { avatarImage, avatarStyle, avatarText } from "../utils/display";
 
 const props = defineProps({
   me: { type: Object, required: true },
   form: { type: Object, required: true },
   uploadAvatar: { type: Function, required: true },
-  theme: { type: String, default: "wechat" }
+  theme: { type: String, default: "wechat" },
+  chatBackground: { type: String, default: "soft" },
+  chatWallpaperUrl: { type: String, default: "" },
+  uploadChatBackground: { type: Function, required: true }
 });
 
-defineEmits(["save", "change-theme"]);
+const emit = defineEmits(["save", "change-theme", "change-chat-background", "change-chat-wallpaper", "logout"]);
+
 const uploadingAvatar = ref(false);
 const uploadError = ref("");
+const uploadingBackground = ref(false);
+const backgroundError = ref("");
+const wallpaperDraft = ref(props.chatWallpaperUrl || "");
+
+watch(
+  () => props.chatWallpaperUrl,
+  (value) => {
+    wallpaperDraft.value = value || "";
+  }
+);
 
 const avatarPresets = [
   "linear-gradient(135deg,#07c160,#2f80ed)",
@@ -27,6 +41,14 @@ const themes = [
   { key: "ocean", name: "海盐蓝", color: "#2f80ed" },
   { key: "grape", name: "葡萄紫", color: "#7c3aed" },
   { key: "sunset", name: "日落橙", color: "#f97316" }
+];
+
+const chatBackgrounds = [
+  { key: "soft", name: "柔和浅色", preview: "linear-gradient(135deg,#f4f8fb,#eef3f7)" },
+  { key: "paper", name: "纸感纹理", preview: "repeating-linear-gradient(45deg,#f8fafc,#f8fafc 12px,#edf2f7 12px,#edf2f7 13px)" },
+  { key: "mint", name: "薄荷气泡", preview: "radial-gradient(circle at 20% 20%,rgba(7,193,96,.18),transparent 30%),linear-gradient(135deg,#f4fbf7,#edf6ff)" },
+  { key: "night", name: "深色夜间", preview: "linear-gradient(135deg,#17202b,#263241)" },
+  { key: "custom", name: "自定义图片", preview: "linear-gradient(135deg,#111827,#667085)" }
 ];
 
 const completion = computed(() => {
@@ -59,6 +81,30 @@ async function chooseAvatar(event) {
     uploadingAvatar.value = false;
   }
 }
+
+async function chooseBackground(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  backgroundError.value = "";
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    backgroundError.value = "请选择图片文件";
+    return;
+  }
+  uploadingBackground.value = true;
+  try {
+    wallpaperDraft.value = await props.uploadChatBackground(file);
+  } catch (error) {
+    backgroundError.value = error.message || "背景上传失败";
+  } finally {
+    uploadingBackground.value = false;
+  }
+}
+
+function applyWallpaperUrl() {
+  emit("change-chat-wallpaper", wallpaperDraft.value.trim());
+  emit("change-chat-background", wallpaperDraft.value.trim() ? "custom" : "soft");
+}
 </script>
 
 <template>
@@ -70,10 +116,13 @@ async function chooseAvatar(event) {
       </div>
       <div>
         <h2>个人中心</h2>
-        <p>设置头像、状态、联系方式和身份信息，资料会同步到联系人卡片。</p>
+        <p>管理头像、昵称、联系方式、界面主题和聊天背景。</p>
       </div>
       <button class="profile-save-top" type="button" @click="$emit('save', form)">
         <CheckCircle2 />保存资料
+      </button>
+      <button class="profile-logout-top" type="button" @click="$emit('logout')">
+        <LogOut />退出登录
       </button>
     </header>
 
@@ -116,7 +165,7 @@ async function chooseAvatar(event) {
         <section class="profile-section">
           <div class="profile-section-title">
             <ImagePlus />
-            <div><strong>头像设置</strong><span>支持本地上传、图片地址和预设色板</span></div>
+            <div><strong>头像设置</strong><span>支持本地上传、图片地址和预设色块</span></div>
           </div>
           <label class="avatar-url-field">
             <span>头像地址</span>
@@ -145,8 +194,8 @@ async function chooseAvatar(event) {
 
         <section class="profile-section">
           <div class="profile-section-title">
-            <Sparkles />
-            <div><strong>界面主题</strong><span>选择主色调，会保存到本机并立即生效</span></div>
+            <Palette />
+            <div><strong>界面主题</strong><span>调整主色调，立即应用到侧栏、按钮和强调状态</span></div>
           </div>
           <div class="theme-picker">
             <button
@@ -159,6 +208,38 @@ async function chooseAvatar(event) {
               <i :style="{ background: item.color }"></i>
               <span>{{ item.name }}</span>
             </button>
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <div class="profile-section-title">
+            <Wallpaper />
+            <div><strong>聊天背景</strong><span>选择预设背景，或上传图片作为聊天窗口壁纸</span></div>
+          </div>
+          <div class="background-picker">
+            <button
+              v-for="item in chatBackgrounds"
+              :key="item.key"
+              type="button"
+              :class="{ active: chatBackground === item.key }"
+              @click="$emit('change-chat-background', item.key)"
+            >
+              <i :style="{ background: item.preview }"></i>
+              <span>{{ item.name }}</span>
+            </button>
+          </div>
+          <div class="wallpaper-row">
+            <input v-model="wallpaperDraft" placeholder="图片地址，例如 https://... 或 /files/xxx.png" />
+            <button class="panel-secondary" type="button" @click="applyWallpaperUrl">应用图片</button>
+          </div>
+          <div class="avatar-upload-row">
+            <label class="avatar-upload-btn">
+              <ImagePlus />
+              <span>{{ uploadingBackground ? "上传中..." : "本地上传背景" }}</span>
+              <input hidden accept="image/*" type="file" :disabled="uploadingBackground" @change="chooseBackground" />
+            </label>
+            <small v-if="backgroundError">{{ backgroundError }}</small>
+            <small v-else>聊天背景只保存在当前设备，适合做个性化展示。</small>
           </div>
         </section>
 

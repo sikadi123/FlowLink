@@ -39,7 +39,7 @@ export function getRealtimeBase() {
 }
 
 export async function request(path, options = {}) {
-  const token = localStorage.getItem("flowlink_token") || "";
+  const token = sessionStorage.getItem("flowlink_session_token") || localStorage.getItem("flowlink_token") || "";
   const isForm = options.body instanceof FormData;
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), options.timeout || REQUEST_TIMEOUT_MS);

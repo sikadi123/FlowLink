@@ -8,6 +8,7 @@ import ConversationSidebar from "./components/ConversationSidebar.vue";
 import DirectoryPanel from "./components/DirectoryPanel.vue";
 import NotificationPanel from "./components/NotificationPanel.vue";
 import ProfilePanel from "./components/ProfilePanel.vue";
+import { resolveUrl } from "./api/http";
 import { useChatStore } from "./stores/chatStore";
 
 const store = useChatStore();
@@ -60,8 +61,10 @@ async function respondNotificationRequest(requestId, action, notificationId) {
     :class="[
       { 'surface-mode': store.surfaceMode, 'has-selected': !!store.selected },
       `tab-${store.activeTab}`,
-      `theme-${store.theme}`
+      `theme-${store.theme}`,
+      `chat-bg-${store.chatBackground}`
     ]"
+    :style="store.chatBackground === 'custom' && store.chatWallpaperUrl ? { '--chat-wallpaper': `url('${resolveUrl(store.chatWallpaperUrl)}')` } : {}"
   >
     <AppRail
       :me="store.me"
@@ -96,8 +99,14 @@ async function respondNotificationRequest(requestId, action, notificationId) {
         :form="profileForm"
         :upload-avatar="store.uploadAvatar"
         :theme="store.theme"
+        :chat-background="store.chatBackground"
+        :chat-wallpaper-url="store.chatWallpaperUrl"
+        :upload-chat-background="store.uploadChatBackground"
         @save="store.saveProfile"
         @change-theme="store.setTheme"
+        @change-chat-background="store.setChatBackground"
+        @change-chat-wallpaper="store.setChatWallpaperUrl"
+        @logout="store.logout"
       />
 
       <NotificationPanel
