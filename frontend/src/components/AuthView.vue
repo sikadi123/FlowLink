@@ -1,12 +1,15 @@
 <script setup>
 import { computed, reactive, ref } from "vue";
-import { getServerBase, setServerBase } from "../api/http";
+import { getConfiguredRealtimeBase, getServerBase, setRealtimeBase, setServerBase } from "../api/http";
 import { useChatStore } from "../stores/chatStore";
 
 const store = useChatStore();
 const mode = ref("login");
 const submitting = ref(false);
-const serverForm = reactive({ baseUrl: getServerBase() });
+const serverForm = reactive({
+  baseUrl: getServerBase(),
+  realtimeUrl: getConfiguredRealtimeBase()
+});
 
 const loginForm = reactive({
   account: "",
@@ -31,7 +34,8 @@ function switchMode(nextMode) {
 
 function saveServerBase() {
   setServerBase(serverForm.baseUrl);
-  store.toast(serverForm.baseUrl.trim() ? "服务器地址已保存" : "已恢复默认服务器地址");
+  setRealtimeBase(serverForm.realtimeUrl);
+  store.toast(serverForm.baseUrl.trim() || serverForm.realtimeUrl.trim() ? "服务器地址已保存" : "已恢复默认服务器地址");
 }
 
 async function login() {
@@ -94,8 +98,12 @@ async function register() {
 
       <div class="server-box">
         <label>
-          <span>服务器地址</span>
+          <span>API 地址</span>
           <input v-model.trim="serverForm.baseUrl" placeholder="例如 http://192.168.1.23:8080" />
+        </label>
+        <label>
+          <span>实时地址</span>
+          <input v-model.trim="serverForm.realtimeUrl" placeholder="本机可空；穿透时填 ws/wss 地址" />
         </label>
         <button type="button" @click="saveServerBase">保存</button>
       </div>

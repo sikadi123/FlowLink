@@ -1,4 +1,5 @@
 const SERVER_BASE_KEY = "flowlink_server_base";
+const REALTIME_BASE_KEY = "flowlink_realtime_base";
 const REQUEST_TIMEOUT_MS = 10000;
 
 export function normalizeServerBase(value) {
@@ -9,10 +10,21 @@ export function getServerBase() {
   return normalizeServerBase(localStorage.getItem(SERVER_BASE_KEY) || import.meta.env.VITE_API_BASE || "");
 }
 
+export function getConfiguredRealtimeBase() {
+  return normalizeServerBase(localStorage.getItem(REALTIME_BASE_KEY) || import.meta.env.VITE_WS_BASE || "");
+}
+
 export function setServerBase(value) {
   const normalized = normalizeServerBase(value);
   if (normalized) localStorage.setItem(SERVER_BASE_KEY, normalized);
   else localStorage.removeItem(SERVER_BASE_KEY);
+  return normalized;
+}
+
+export function setRealtimeBase(value) {
+  const normalized = normalizeServerBase(value);
+  if (normalized) localStorage.setItem(REALTIME_BASE_KEY, normalized);
+  else localStorage.removeItem(REALTIME_BASE_KEY);
   return normalized;
 }
 
@@ -24,7 +36,10 @@ export function resolveUrl(path) {
 }
 
 export function getRealtimeBase() {
-  const configured = normalizeServerBase(localStorage.getItem(SERVER_BASE_KEY) || import.meta.env.VITE_WS_BASE || import.meta.env.VITE_API_BASE || "");
+  const explicit = getConfiguredRealtimeBase();
+  if (explicit) return explicit.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:");
+
+  const configured = normalizeServerBase(localStorage.getItem(SERVER_BASE_KEY) || import.meta.env.VITE_API_BASE || "");
   if (configured) {
     try {
       const url = new URL(configured);

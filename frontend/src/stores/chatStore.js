@@ -484,7 +484,10 @@ export const useChatStore = defineStore("chat", {
       }
       if (packet.action === "message_deleted") this.removeMessage(packet.payload.messageId);
       if (packet.action === "message_ack") this.connectionStatus = "online";
-      if (packet.action === "message_failed") this.toast(packet.payload.message || "消息发送失败");
+      if (packet.action === "message_failed") {
+        this.markMessageFailed(packet.payload.clientId, packet.payload.message || "消息发送失败");
+        this.toast(packet.payload.message || "消息发送失败");
+      }
       if (packet.action === "friend_request_received") {
         const req = packet.payload.request;
         if (req) {
@@ -535,26 +538,64 @@ export const useChatStore = defineStore("chat", {
     removeMessage(messageId) {
       this.messages = this.messages.filter((item) => String(item.id) !== String(messageId));
     },
+    markMessageFailed(clientId, message) {
+      if (!clientId) return;
+      const item = this.messages.find((entry) => String(entry.clientId) === String(clientId));
+      if (!item) return;
+      item.pending = false;
+      item.failed = true;
+      item.errorText = message || "消息发送失败";
+    },
+    isSelectedConversation(conversation) {
+      return this.selected
+        && conversation
+        && this.selected.type === conversation.type
+        && String(this.selected.id) === String(conversation.id);
+    },
     async sendMessage(content, messageType = 1, fileRecordId = null, metadata = {}) {
       if (!this.selected || !content.trim()) return;
+      const selected = { ...this.selected };
+      const clientId = `web_${Date.now()}_${Math.random().toString(16).slice(2)}`;
       const payload = {
-        conversationType: this.selected.type,
-        targetId: this.selected.id,
+        conversationType: selected.type,
+        targetId: selected.id,
         content,
         messageType,
         ...(fileRecordId ? { fileRecordId } : {}),
         ...metadata,
-        clientId: `web_${Date.now()}`
+        clientId
       };
-      let message;
+      const optimisticMessage = {
+        clientId,
+        conversationType: selected.type === "group" ? 2 : 1,
+        senderId: this.me?.id,
+        receiverId: selected.type === "private" ? selected.id : null,
+        groupId: selected.type === "group" ? selected.id : null,
+        content,
+        messageType,
+        sendTime: new Date().toISOString(),
+        pending: true,
+        failed: false,
+        ...(fileRecordId ? { fileRecordId } : {}),
+        ...metadata
+      };
+      if (this.isSelectedConversation(selected)) this.upsertMessage(optimisticMessage);
       try {
-        message = await request("/api/messages/send", { method: "POST", body: JSON.stringify(payload) });
+        const message = await request("/api/messages/send", { method: "POST", body: JSON.stringify(payload) });
+        if (this.isSelectedConversation(selected)) {
+          this.upsertMessage({ ...message, clientId, pending: false, failed: false });
+        }
+        this.updateConversationPreview(selected.type, selected.id, message);
       } catch (error) {
-        this.toast(error.message || "消息发送失败");
-        return;
+        const failedMessage = {
+          ...optimisticMessage,
+          pending: false,
+          failed: true,
+          errorText: error.message || "消息发送失败"
+        };
+        if (this.isSelectedConversation(selected)) this.upsertMessage(failedMessage);
+        this.toast(error.message || "消息发送失败，请检查后端服务和网络");
       }
-      this.upsertMessage(message);
-      this.updateConversationPreview(this.selected.type, this.selected.id, message);
     },
     async sendText(content) {
       await this.sendMessage(content, 1);
@@ -566,24 +607,32 @@ export const useChatStore = defineStore("chat", {
     async uploadAndSend(file) {
       const form = new FormData();
       form.append("file", file);
-      const meta = await request("/api/files/upload", { method: "POST", body: form });
-      const messageType = file.type?.startsWith("image/") ? 2 : 3;
-      await this.sendMessage(meta.url, messageType, meta.fileRecordId, {
-        fileName: meta.fileName,
-        fileSize: meta.fileSize,
-        fileType: meta.fileType
-      });
+      try {
+        const meta = await request("/api/files/upload", { method: "POST", body: form, timeout: 60000 });
+        const messageType = file.type?.startsWith("image/") ? 2 : 3;
+        await this.sendMessage(meta.url, messageType, meta.fileRecordId, {
+          fileName: meta.fileName,
+          fileSize: meta.fileSize,
+          fileType: meta.fileType
+        });
+      } catch (error) {
+        this.toast(error.message || "文件发送失败，请稍后重试");
+      }
     },
     async uploadAndSendVoice(file, duration = 0) {
       const form = new FormData();
       form.append("file", file);
-      const meta = await request("/api/files/upload", { method: "POST", body: form });
-      await this.sendMessage(meta.url, 4, meta.fileRecordId, {
-        fileName: meta.fileName,
-        fileSize: meta.fileSize,
-        fileType: meta.fileType,
-        voiceDuration: duration
-      });
+      try {
+        const meta = await request("/api/files/upload", { method: "POST", body: form, timeout: 60000 });
+        await this.sendMessage(meta.url, 4, meta.fileRecordId, {
+          fileName: meta.fileName,
+          fileSize: meta.fileSize,
+          fileType: meta.fileType,
+          voiceDuration: duration
+        });
+      } catch (error) {
+        this.toast(error.message || "语音发送失败，请检查麦克风权限和后端服务");
+      }
     },
     async uploadAvatar(file) {
       const form = new FormData();
@@ -676,6 +725,22 @@ export const useChatStore = defineStore("chat", {
     callPeerName(userId) {
       return this.nameOf(userId);
     },
+    mediaErrorMessage(error) {
+      const name = error?.name || "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        return "摄像头或麦克风权限被拒绝，请在系统应用权限里允许 FlowLink 使用相机和麦克风";
+      }
+      if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        return "没有检测到可用的摄像头或麦克风";
+      }
+      if (name === "NotReadableError" || name === "TrackStartError") {
+        return "摄像头或麦克风正被其他应用占用，请关闭占用后重试";
+      }
+      if (name === "SecurityError") {
+        return "当前环境不允许调用摄像头。手机浏览器请使用 HTTPS，或使用 APK 演示";
+      }
+      return error?.message || "无法打开摄像头或麦克风";
+    },
     async startVideoCall(targetId) {
       if (!targetId) return;
       if (this.selected?.type === "group") {
@@ -702,11 +767,19 @@ export const useChatStore = defineStore("chat", {
         errorText: "",
         iceQueue: []
       };
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        this.call.errorText = "实时连接未建立，暂时不能发起视频通话";
+        this.toast(this.call.errorText);
+        this.endCall(false);
+        return;
+      }
       try {
         await this.startLocalMedia();
       } catch (error) {
+        const message = this.mediaErrorMessage(error);
+        this.call.errorText = message;
         this.endCall(false);
-        this.toast(error.message || "无法打开摄像头或麦克风");
+        this.toast(message);
         return;
       }
       this.sendRealtime("call_invite", { targetId, callId, mediaType: "video" });
@@ -728,8 +801,10 @@ export const useChatStore = defineStore("chat", {
           callId: this.call.callId,
           reason: "media_denied"
         });
+        const message = this.mediaErrorMessage(error);
+        this.call.errorText = message;
         this.endCall(false);
-        this.toast(error.message || "无法打开摄像头或麦克风");
+        this.toast(message);
       }
     },
     rejectCall() {

@@ -701,6 +701,29 @@ input:focus, textarea:focus { border-color: rgba(7, 193, 96, .55); box-shadow: 0
   background: #95ec69;
   border-color: #7adb56;
 }
+.message.pending .bubble,
+.message.pending .image-message,
+.message.pending .file-message,
+.message.pending .voice-message {
+  opacity: .72;
+}
+.message.failed .bubble,
+.message.failed .image-message,
+.message.failed .file-message,
+.message.failed .voice-message {
+  border-color: rgba(217, 45, 32, .35);
+  background: #fff6f5;
+}
+.message-delivery {
+  width: max-content;
+  max-width: 280px;
+  justify-self: start;
+  color: #98a2b3;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.mine .message-delivery { justify-self: end; }
+.message-delivery.failed { color: #d92d20; }
 .recalled-message {
   justify-self: start;
   padding: 7px 11px;

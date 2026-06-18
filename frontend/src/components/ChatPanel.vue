@@ -56,8 +56,8 @@ function groupDisplayName(userId) {
 }
 
 function messageSenderName(userId) {
-  if (props.selected?.type === "group") return groupDisplayName(userId) || nameOf(userId);
-  return nameOf(userId);
+  if (props.selected?.type === "group") return groupDisplayName(userId) || props.nameOf(userId);
+  return props.nameOf(userId);
 }
 
 function messageRole(message) {
@@ -75,13 +75,27 @@ function messageRoleLabel(message) {
   return "";
 }
 
-watch(
-  () => props.messages.length,
-  async () => {
-    await nextTick();
-    if (messageBox.value) messageBox.value.scrollTop = messageBox.value.scrollHeight;
-  }
-);
+function lastMessageKey() {
+  const message = props.messages[props.messages.length - 1];
+  return [
+    props.selected?.type || "",
+    props.selected?.id || "",
+    message?.clientId || message?.id || "",
+    message?.pending ? "pending" : "",
+    message?.failed ? "failed" : "",
+    message?.sendTime || message?.createdAt || ""
+  ].join("|");
+}
+
+function scrollMessagesToBottom() {
+  nextTick(() => {
+    window.requestAnimationFrame(() => {
+      if (messageBox.value) messageBox.value.scrollTop = messageBox.value.scrollHeight;
+    });
+  });
+}
+
+watch(lastMessageKey, scrollMessagesToBottom, { flush: "post" });
 
 watch(
   () => props.entity?.id,
@@ -336,9 +350,9 @@ function transferOwner() {
       <button class="load-earlier-btn" type="button" @click="$emit('loadEarlier')">加载更早消息</button>
       <article
         v-for="message in filteredMessages"
-        :key="message.id || message.clientId || message.sendTime"
+        :key="message.clientId || message.id || message.sendTime"
         class="message"
-        :class="{ mine: String(message.senderId) === String(me.id) }"
+        :class="{ mine: String(message.senderId) === String(me.id), pending: message.pending, failed: message.failed }"
         @contextmenu.prevent="openMessageMenu($event, message)"
       >
         <div class="message-avatar">{{ avatarText({ displayName: messageSenderName(message.senderId) }) }}</div>
@@ -394,7 +408,7 @@ function transferOwner() {
             </template>
           </div>
           <button
-            v-if="!message.recalled"
+            v-if="!message.recalled && !message.pending"
             class="message-action"
             type="button"
             title="引用回复"
@@ -403,7 +417,7 @@ function transferOwner() {
             <MessageSquareQuote />回复
           </button>
           <button
-            v-if="canRecall(message)"
+            v-if="canRecall(message) && !message.pending"
             class="message-action"
             type="button"
             title="撤回消息"
@@ -411,6 +425,9 @@ function transferOwner() {
           >
             <RotateCcw />撤回
           </button>
+          <div v-if="message.pending || message.failed" class="message-delivery" :class="{ failed: message.failed }">
+            {{ message.failed ? (message.errorText || "发送失败") : "发送中..." }}
+          </div>
         </div>
       </article>
       <div v-if="messageMenu.open" class="message-menu-mask" @click="closeMessageMenu" @contextmenu.prevent="closeMessageMenu"></div>
