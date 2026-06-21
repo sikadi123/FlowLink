@@ -15,6 +15,17 @@ const store = useChatStore();
 const profileForm = reactive({});
 const userSearchResults = ref([]);
 
+
+  onErrorCaptured((error, instance, info) => {
+  console.error('应用发生错误:', error, instance, info)
+  // 重置到安全状态
+  store.activeTab = 'chats'
+  store.selected = null
+  store.toastText = '应用遇到了一个问题，已自动恢复'
+  // 返回false表示错误已处理，不会向上传播
+  return false
+})
+
 onMounted(async () => {
   if (!store.token) return;
   await store.restoreSession();
